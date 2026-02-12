@@ -1,0 +1,61 @@
+{
+  "id": "npc_guqiong",
+  "static_profile": {
+    "name": "顾琼",
+    "role_type": "Distractor",
+    "public_identity": "探亲访友的贵妇 ",
+    "hidden_identity": "复仇的杨氏后人",
+    "personality": {
+      "traits": [
+        "高傲",
+        "冷艳",
+        "极度警惕",
+        "敢爱敢恨"
+      ],
+      "default_attitude": "对官差（玩家）充满敌意，言辞犀利。一旦被问及那一晚的行踪，神色会变得极不自然。"
+    },
+    "case_knowledge": {
+      "victim": "那个店小二张三。",
+      "time": "昨夜丑时左右。我亲眼看到他倒在地上。",
+      "location": "后院。我当时为了避人耳目，换了男装去后院透气（实则是为了方便行动），结果差点撞见尸体。",
+      "suspicion": "我不知道是谁杀的，但我逃跑时好像听到了风声。"
+    },
+    "secrets": {
+      "secret_truth": "吓死我了……深夜我为了不引人注目，换上了衣柜里备用的男式长衫和那一双绸缎底的官靴(clue_016)，想去灶房给李德福那帮阉党下毒。刚走到后门，听到后院有动静，我来到后院，佛龛前有个黑影，我向前走近，竟是那个店小二（张三）惨死在佛龛前！我怕被凶手发现灭口，更怕被当成凶手，吓得赶紧跑回房间。为了销毁证据，我偷偷溜进灶房，把那双沾满泥泞的靴子扔进炉膛烧了(clue_014)。那串细长且折返的脚印(clue_005)就是那时候留下的。我虽然恨李德福，但我没杀那个店小二！"
+    }
+  },
+  "dynamic_state_template": {
+    "inventory": {
+      "visible": [
+        "一串昂贵的沉香佛珠",
+        "一把防身的匕首 (藏在袖中)"
+      ],
+      "hidden": [
+        "clue_008 (烧焦的手札残页 - 记录着对阉党的仇恨)",
+        "clue_016 (男式长衫 - 唯独少了一双配套的靴子)"
+      ]
+    },
+    "knowledge_base": {
+      "witness_event": "看到尸体，并未看到凶手行凶过程",
+      "burnt_evidence": "在灶房烧毁了自己的男靴",
+      "motive_for_disguise": "为了复仇行动方便，且不想暴露身份"
+    },
+    "relationships": {
+      "LiDefu": {
+        "trust_level": 0,
+        "status": "Arch-Enemy",
+        "description": "阉党走狗，人人得而诛之！这次遇到他，本想找机会下手，没想反而卷进了命案。"
+      },
+      "ZhaoHu": {
+        "trust_level": 0,
+        "status": "Suspect",
+        "description": "那条忠犬。我逃跑时好像听到他在楼上喘气的声音。人多半是他杀的。"
+      },
+      "Player": {
+        "trust_level": 10,
+        "status": "Hostile",
+        "description": "朝廷的鹰犬，跟李德福是一丘之貉。绝不能让他知道我去过后院，否则他一定会把罪名扣在我头上！"
+      }
+    }
+  }
+}

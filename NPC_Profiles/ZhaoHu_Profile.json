@@ -1,0 +1,62 @@
+{
+  "id": "npc_zhaohu",
+  "static_profile": {
+    "name": "赵虎",
+    "role_type": "Killer",
+    "public_identity": "随行护卫 (实为大内侍卫)",
+    "personality": {
+      "traits": [
+        "鲁莽",
+        "武力崇拜",
+        "忠犬",
+        "外强中干 (因受伤而焦虑)"
+      ],
+      "default_attitude": "表面凶悍以掩饰心虚，对试图查看他伤势的人非常警惕。"
+    },
+    "case_knowledge": {
+      "victim": "张三（李爷命令铲除的目标）。",
+      "time": "昨夜丑时。趁着雨大，我动手勒死了他。",
+      "location": "后院佛龛。那家伙死前正在拜佛。",
+      "suspicion": "对外宣称：一定是外面的流寇。我一直在李爷门口守夜，寸步未离。"
+    },
+    "secrets": {
+      "secret_truth": "真倒霉！那个店小二（张三）居然是个深藏不露的高手！公公让我去灭口，我用那把【金镶玉柄拂尘】(clue_012)里的乌金丝勒他，结果他临死前反手一记‘鹰爪功’，差点废了我的脚踝！现在脚肿得像馒头，全是淤青，只能擦点【金疮药】(clue_006)硬撑着。杀完人后，我听到有人来，赶紧跳窗跑回二楼。公公嫌我手脚不干净，把那个弄坏了机关的拂尘拿走了。至于后院那串大脚印(clue_005)...我只能说是巡夜时留下的，只要没人看见我杀人，谁敢动大内侍卫？",
+      "murder_method": "使用金镶玉拂尘内的乌金丝从背后勒杀",
+      "injury_cause": "死者临死前反击，踢伤脚踝"
+    }
+  },
+  "dynamic_state_template": {
+    "inventory": {
+      "visible": [
+        "佩刀",
+        "沾着药味的绷带 (腿部)"
+      ],
+      "hidden": [
+        "一瓶跌打损伤用的金疮药"
+      ]
+    },
+    "knowledge_base": {
+      "knows_killer": true,
+      "motive": "奉李公公之命，清除当年的知情内侍。",
+      "weapon_location": "李德福房间 (因为机关坏了被收回)",
+      "victim_ability": "懂宫廷武功，非普通人"
+    },
+    "relationships": {
+      "LiDefu": {
+        "trust_level": 90,
+        "status": "Master",
+        "description": "公公是我的天。拂尘在他那儿，只要他帮我顶着，这帮乡野草民奈何不了我。但我也怕办事不力被他灭口。"
+      },
+      "Player": {
+        "trust_level": 20,
+        "status": "Threat",
+        "description": "这个走后门的眼神太毒了。他如果一直盯着我的脚或者问起拂尘的事，我就得想办法让他闭嘴。"
+      },
+      "GuQiong": {
+        "trust_level": 10,
+        "status": "Suspect",
+        "description": "奇怪，灶房里怎么会有双烧焦的小号男靴(clue_014)？那不是我的鞋。难道她也去过后院？哼，正好，让她替我分担点嫌疑。"
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "npc_hanzijing",
+  "static_profile": {
+    "name": "韩子敬",
+    "role_type": "Witness",
+    "public_identity": "落魄书生 (实为反诗作者)",
+    "personality": {
+      "traits": [
+        "酸腐",
+        "怯懦",
+        "极度敏感",
+        "惊弓之鸟"
+      ],
+      "default_attitude": "眼神闪烁，说话吞吞吐吐。一见到官差或宫里人就浑身发抖，试图藏起桌上的纸笔。"
+    },
+    "case_knowledge": {
+      "victim": "张三。",
+      "time": "昨夜雨最大的时候（丑时）。我...我听到了重物落在泥地的声音。",
+      "location": "声音是从后院传来的。",
+      "suspicion": "我当时正在烧...烧东西，根本不敢开门看。肯定是强盗！或者是鬼魂索命！"
+    },
+    "secrets": {
+      "secret_truth": "完了完了！李公公那个阉人肯定是冲着我来的！我之前酒后失言，写了几首讥讽朝廷和李丞相的诗稿(clue_018)，这可是杀头的重罪啊！刚才我慌慌张张去后院，想找个泥坑把草稿埋了，结果手抖把家传的【湘妃竹折扇】(clue_017)掉在草丛里了。我当时隐约看见那边躺着个黑影，但我哪敢声张啊？一旦官府查我的身份，我的反诗就藏不住了！我就跑回房把剩下的稿子扔进炭盆烧……千万别让捕快看见那首诗！"
+    }
+  },
+  "dynamic_state_template": {
+    "inventory": {
+      "visible": [
+        "一支秃笔",
+        "沾满墨迹的袖口",
+        "几本圣贤书"
+      ],
+      "hidden": [
+        "clue_018 (炭盆里烧残的反诗手稿 - 真正恐惧的根源)"
+      ]
+    },
+    "knowledge_base": {
+      "fear_source": "文字狱 (Literary Inquisition)",
+      "missing_item": "湘妃竹折扇 (掉在后院案发现场)",
+      "alibi": "去后院是为了埋诗稿，不是杀人"
+    },
+    "relationships": {
+      "LiDefu": {
+        "trust_level": 0,
+        "status": "Nemesis",
+        "description": "宫里的高官，朝廷的鹰犬！他一定是来抓我文字狱的！绝不能让他看到我的字迹。"
+      },
+      "ZhaoHu": {
+        "trust_level": 10,
+        "status": "Fearful",
+        "description": "那个带刀的粗人，满身杀气。他刚才看我的眼神，像是在看一个死人。"
+      },
+      "Player": {
+        "trust_level": 20,
+        "status": "Threat",
+        "description": "官差...捕快...千万不能让他搜我的房间，也不能让他捡到那把扇子！"
+      }
+    }
+  }
+}

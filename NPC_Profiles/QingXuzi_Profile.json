@@ -1,0 +1,61 @@
+{
+  "id": "npc_qingxuzi",
+  "static_profile": {
+    "name": "清虚子",
+    "role_type": "Charlatan",
+    "public_identity": "云游道士 (实为江湖骗子)",
+    "personality": {
+      "traits": [
+        "神神叨叨",
+        "贪财",
+        "胆小怕事",
+        "巧舌如簧"
+      ],
+      "default_attitude": "满口‘无量天尊’，试图用玄学术语把话题绕开，一旦提到拂尘或钱袋就会变得慌张。"
+    },
+    "case_knowledge": {
+      "victim": "那个倒霉的张三居士。",
+      "time": "贫道...咳，贫道夜观天象（其实是起夜上茅房），大约丑时。",
+      "location": "后院佛龛旁。",
+      "suspicion": "贫道过去看时他已经断气了。人真不是我杀的！"
+    },
+    "secrets": {
+      "secret_truth": "无量天尊……贫道这次真是倒了大霉！那张三施主给了贫道一大笔钱(clue_020)，求贫道指点迷津。贫道算到他‘命犯太岁，生机在旧’，现下出不去，只能让他去后院佛龛拜拜。刚才贫道去后院查看，谁知他竟然死了！脖子都被勒断了！贫道吓得魂飞魄散，手一软，把随身的【桃木柄拂尘】(clue_019)掉在泥里了，也没敢捡就跑了回来。那钱袋还在贫道怀里……但这真不是谋财害命啊！贫道的拂尘是马尾软毛，哪能勒断人骨头？凶手另有其人！"
+    }
+  },
+  "dynamic_state_template": {
+    "inventory": {
+      "visible": [
+        "罗盘",
+        "几张所谓的‘灵符’"
+      ],
+      "hidden": [
+        "clue_009 (被修改的星盘图 - 掩饰算命实际是乱涂乱画)",
+        "clue_020 (张三的荷包 - 算命钱/赃物)"
+      ]
+    },
+    "knowledge_base": {
+      "knows_victim_money": true,
+      "knows_prophecy": true,
+      "missing_item": "桃木柄拂尘 (掉在后院尸体旁)",
+      "alibi": "拂尘材质过软，无法造成死者的致命伤"
+    },
+    "relationships": {
+      "Player": {
+        "trust_level": 40,
+        "status": "Threat",
+        "description": "这个捕快如果发现后院那把拂尘是我的，肯定会把杀人罪名扣我头上。得想办法解释清楚拂尘材质的问题。"
+      },
+      "ZhangSan": {
+        "trust_level": 10,
+        "status": "Client/Victim",
+        "description": "倒霉的施主。贫道虽然收了钱，但也没想到那个‘故人’真会杀了他啊。"
+      },
+      "LiDefu": {
+        "trust_level": 20,
+        "status": "Dangerous",
+        "description": "看来是个狠角色，一来张三就死了，他不会就是那个故人吧！贫道得离他远点。"
+      }
+    }
+  }
+}
