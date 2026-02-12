@@ -1,0 +1,591 @@
+import os
+
+html_code = r'''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>回马驿之变 | 沉浸版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;600&display=swap" rel="stylesheet">
+    <style>
+        /* ====================
+           🎨 全局变量配置区
+           ==================== */
+        :root {
+            --bg-color: #1a1614;         /* 网页背景色 (深炭黑) */
+            --container-bg: #f3ece4;     /* 游戏容器背景 (陈旧宣纸) */
+            --primary-wood: #3e2723;     /* 深色木纹 (标题栏/气泡) */
+            --accent-red: #8a2323;       /* 朱砂红 (强调/按钮) */
+            --text-main: #2d2620;        /* 正文文字颜色 (墨色) */
+            --text-light: #d7ccc8;       /* 浅色文字 */
+            --shadow: rgba(0, 0, 0, 0.4);/* 阴影颜色 */
+            --font-title: 'Ma Shan Zheng', cursive; /* 标题字体 */
+            --font-body: 'Noto Serif SC', serif;    /* 正文字体 */
+        }
+
+        /* 基础重置 */
+        body { 
+            background: var(--bg-color); 
+            margin: 0; 
+            font-family: var(--font-body); 
+            height: 100vh; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+            /* 可选：增加一个微妙的背景纹理 */
+            background-image: repeating-linear-gradient(45deg, #1f1b19 0, #1f1b19 1px, transparent 0, transparent 50%);
+            background-size: 30px 30px;
+        }
+
+        /* 游戏主容器 (仿书页效果) */
+        .container { 
+            width: 100%; 
+            max-width: 600px; 
+            background: var(--container-bg); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%; 
+            position: relative; 
+            box-shadow: 0 0 50px var(--shadow);
+            border-left: 1px solid #dcd3cb;
+            border-right: 1px solid #dcd3cb;
+        }
+
+        /* 纹理遮罩 (让纸张看起来有质感) */
+        .container::before { 
+            content:''; 
+            position: absolute; 
+            inset:0; 
+            background: url('https://www.transparenttextures.com/patterns/cream-paper.png'); /* 在线纹理，如果断网可删去 */
+            opacity: 0.6; 
+            pointer-events: none; 
+            z-index: 0; 
+        }
+
+        /* ====================
+           🧱 顶部标题栏
+           ==================== */
+        .header { 
+            background: var(--primary-wood); 
+            color: #eaddcf; 
+            padding: 15px 20px; 
+            text-align: center; 
+            z-index: 10; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 10px var(--shadow);
+            border-bottom: 2px solid #5d4037;
+        }
+        .header h1 { 
+            margin: 0; 
+            font-family: var(--font-title); 
+            font-size: 24px; 
+            letter-spacing: 2px;
+            text-shadow: 1px 1px 2px black;
+        }
+        .config-btn { 
+            font-size: 13px; 
+            cursor: pointer; 
+            background: rgba(0,0,0,0.3); 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            border: 1px solid #8d6e63;
+            transition: all 0.2s;
+        }
+        .config-btn:hover { background: var(--accent-red); border-color: var(--accent-red); }
+
+        /* ====================
+           💬 聊天记录区
+           ==================== */
+        #chat-history { 
+            flex: 1; 
+            padding: 20px; 
+            overflow-y: auto; 
+            z-index: 1; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 18px; 
+            scroll-behavior: smooth; 
+        }
+
+        /* 消息行 */
+        .message-row { 
+            display: flex; 
+            gap: 12px; 
+            max-width: 92%; 
+            opacity: 0; 
+            animation: fadeIn 0.4s forwards; /* 淡入动画 */
+        }
+        @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+
+        .message-row.user { align-self: flex-end; flex-direction: row-reverse; }
+
+        /* 头像 */
+        .avatar { 
+            width: 48px; 
+            height: 48px; 
+            border-radius: 50%; 
+            border: 3px solid #8d6e63; 
+            background-color: #ccc; 
+            background-size: cover; 
+            background-position: center;
+            flex-shrink: 0; 
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 气泡 */
+        .bubble { 
+            background: #fff; 
+            padding: 12px 16px; 
+            border-radius: 2px 12px 12px 12px; /* 独特的圆角 */
+            font-size: 16px; 
+            line-height: 1.7; 
+            color: #333;
+            box-shadow: 1px 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+            position: relative;
+        }
+        .message-row.user .bubble { 
+            background: var(--primary-wood); 
+            color: #efebe9; 
+            border-radius: 12px 2px 12px 12px;
+            border: none;
+        }
+        
+        /* 气泡内的图片 */
+        .clue-img { 
+            max-width: 100%; 
+            border-radius: 4px; 
+            margin: 8px 0; 
+            border: 3px solid #fff; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: block; 
+        }
+
+        /* ====================
+           🕹️ 底部操作区
+           ==================== */
+        .bottom-area { 
+            background: rgba(243, 236, 228, 0.95); 
+            padding: 15px; 
+            border-top: 1px solid #d7ccc8; 
+            z-index: 10; 
+            backdrop-filter: blur(5px); 
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        /* 网格菜单 (带图按钮) */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; }
+        
+        .card-btn { 
+            background: #fff; 
+            border: 1px solid #d7ccc8; 
+            border-radius: 6px; 
+            padding: 10px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 6px; 
+            cursor: pointer; 
+            text-align: center; 
+            transition: all 0.2s;
+            box-shadow: 0 2px 0 #d7ccc8; /* 立体按钮感 */
+        }
+        .card-btn:active { transform: translateY(2px); box-shadow: none; background: #f5f5f5; }
+        .card-btn img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; }
+        .card-btn span { font-size: 13px; font-weight: bold; color: var(--primary-wood); }
+
+        /* 纯文字大按钮 */
+        .text-btn { 
+            width: 100%; 
+            padding: 14px; 
+            background: var(--primary-wood); 
+            color: #f4e4bc; 
+            border: none; 
+            border-radius: 4px; 
+            font-size: 18px; 
+            margin-bottom: 8px; 
+            font-family: var(--font-title); 
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 2px;
+            box-shadow: 0 3px 0 #271815; /* 木块厚度感 */
+            transition: transform 0.1s;
+        }
+        .text-btn:active { transform: translateY(3px); box-shadow: none; }
+        
+        .text-btn.red { 
+            background: var(--accent-red); 
+            box-shadow: 0 3px 0 #5a1212;
+        }
+        .text-btn.red:active { box-shadow: none; }
+
+        /* 输入框区域 */
+        .chat-input { display: flex; gap: 10px; }
+        .chat-input input { 
+            flex: 1; 
+            padding: 12px; 
+            border: 2px solid #d7ccc8; 
+            border-radius: 4px; 
+            font-family: var(--font-body); 
+            font-size: 16px;
+            background: #fff;
+        }
+        .chat-input input:focus { outline: none; border-color: var(--primary-wood); }
+        .chat-input button { 
+            padding: 0 20px; 
+            background: var(--primary-wood); 
+            color: #eaddcf; 
+            border: none; 
+            border-radius: 4px; 
+            font-weight: bold;
+        }
+
+        /* ====================
+           🔒 弹窗样式 (通关文牒)
+           ==================== */
+        .overlay { 
+            position: fixed; inset: 0; z-index: 9999; 
+            background: rgba(20, 15, 12, 0.9); 
+            backdrop-filter: blur(3px);
+            display: none; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            color: #f4e4bc; 
+        }
+        .modal-box { 
+            background: #fdf5e6; 
+            padding: 30px; 
+            border-radius: 2px; 
+            border: 8px solid var(--primary-wood); 
+            outline: 2px solid #a1887f;
+            text-align: center; 
+            width: 85%; 
+            max-width: 320px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+        /* 装饰用的红角标 */
+        .modal-box::after {
+            content: ''; position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px;
+            border: 1px solid #a1887f; pointer-events: none; z-index: -1;
+        }
+
+        .modal-box h2 { 
+            font-family: var(--font-title); 
+            margin-bottom: 20px; 
+            color: var(--primary-wood); 
+            font-size: 26px;
+            border-bottom: 2px solid var(--accent-red);
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+        .modal-box p.sub-text { font-size: 14px; color: #6d4c41; margin-bottom: 20px; }
+        
+        .modal-box input { 
+            width: 90%; 
+            padding: 12px; 
+            margin-bottom: 20px; 
+            border: 2px solid #d7ccc8; 
+            border-radius: 0; 
+            background: #fff;
+            text-align: center; 
+            font-size: 18px; 
+            color: var(--primary-wood);
+            font-family: monospace;
+        }
+        .modal-box input:focus { outline: none; border-color: var(--accent-red); }
+        
+        .modal-box button { 
+            width: 100%; 
+            padding: 12px; 
+            background: var(--accent-red); 
+            color: #fff; 
+            border: none; 
+            border-radius: 2px; 
+            cursor: pointer; 
+            font-size: 18px; 
+            font-family: var(--font-title); 
+            letter-spacing: 2px;
+            transition: background 0.2s;
+        }
+        .modal-box button:hover { background: #b71c1c; }
+        
+        #invite-msg { color: var(--accent-red); font-weight: bold; }
+
+    </style>
+</head>
+<body>
+    <div id="invite-overlay" class="overlay">
+        <div class="modal-box">
+            <h2>通关文牒</h2>
+            <p class="sub-text">驿站封锁，需凭帖入内</p>
+            <input type="text" id="invite-input" placeholder="请输入邀请码" autocomplete="off">
+            <button onclick="verifyInviteCode()">验明正身</button>
+            <p id="invite-msg" style="font-size:12px; margin-top:15px;"></p>
+        </div>
+    </div>
+
+    <div id="key-overlay" class="overlay">
+        <div class="modal-box">
+            <h2>密匙配置</h2>
+            <p class="sub-text">请出示您的 DeepSeek 令牌</p>
+            <input type="password" id="key-input" placeholder="sk-..." autocomplete="off">
+            <button onclick="saveApiKey()">开启调查</button>
+            <p class="sub-text" style="margin-top:15px; font-size:12px; opacity:0.8;">*令牌仅在本地保存，安全无忧</p>
+        </div>
+    </div>
+
+    <div class="container" id="game-container">
+        <div class="header">
+            <h1>回马驿之变</h1>
+            <span class="config-btn" onclick="openKeySettings()">⚙️ 密匙</span>
+        </div>
+        
+        <div id="chat-history">
+            </div>
+        
+        <div class="bottom-area" id="controls">
+            </div>
+    </div>
+
+    <script>
+        const state = { token: null, uiType: 'text', uiOptions: [] };
+        const container = document.getElementById('game-container');
+        const history = document.getElementById('chat-history');
+        const controls = document.getElementById('controls');
+        
+        // --- 初始化流程 ---
+        async function init() {
+            const inviteCode = localStorage.getItem('invite_code');
+            const deviceId = localStorage.getItem('device_id'); 
+            const apiKey = localStorage.getItem('user_api_key');
+
+            if (!inviteCode) {
+                document.getElementById('invite-overlay').style.display = 'flex';
+            } else {
+                const isValid = await checkInviteValid(inviteCode, deviceId);
+                if (isValid) {
+                    if (!apiKey) {
+                        document.getElementById('key-overlay').style.display = 'flex';
+                    } else {
+                        renderUI(); 
+                    }
+                } else {
+                    localStorage.removeItem('invite_code');
+                    localStorage.removeItem('device_id');
+                    document.getElementById('invite-overlay').style.display = 'flex';
+                    document.getElementById('invite-msg').innerText = "文牒失效或设备不符";
+                }
+            }
+        }
+
+        async function checkInviteValid(code, deviceId) {
+            try {
+                const res = await fetch('/verify_token', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ token: code, device_id: deviceId })
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    if(data.device_id) localStorage.setItem('device_id', data.device_id);
+                    return true;
+                }
+                return false;
+            } catch(e) { return false; }
+        }
+
+        async function verifyInviteCode() {
+            const code = document.getElementById('invite-input').value.trim();
+            if(!code) return;
+            document.getElementById('invite-msg').innerText = "验证中...";
+            
+            const deviceId = localStorage.getItem('device_id'); 
+            const isValid = await checkInviteValid(code, deviceId);
+            
+            if (isValid) {
+                localStorage.setItem('invite_code', code);
+                document.getElementById('invite-overlay').style.display = 'none';
+                if (!localStorage.getItem('user_api_key')) {
+                    document.getElementById('key-overlay').style.display = 'flex';
+                } else {
+                    renderUI();
+                }
+            } else {
+                document.getElementById('invite-msg').innerText = "无效的邀请码，或该码已绑定其他设备";
+            }
+        }
+
+        function saveApiKey() {
+            const key = document.getElementById('key-input').value.trim();
+            if(!key) return;
+            localStorage.setItem('user_api_key', key);
+            document.getElementById('key-overlay').style.display = 'none';
+            renderUI();
+        }
+
+        function openKeySettings() {
+            document.getElementById('key-input').value = localStorage.getItem('user_api_key') || '';
+            document.getElementById('key-overlay').style.display = 'flex';
+        }
+
+        async function send(payload) {
+            const inviteCode = localStorage.getItem('invite_code');
+            const deviceId = localStorage.getItem('device_id');
+            const apiKey = localStorage.getItem('user_api_key');
+            
+            if(!inviteCode) { location.reload(); return; }
+            if(!apiKey) { openKeySettings(); return; }
+
+            if(payload.user_input && !payload.user_input.startsWith("CMD_")) 
+                addMsg(payload.user_input, 'user');
+
+            // loading 态
+            const loadingDiv = document.createElement('div');
+            if(payload.user_input) {
+                loadingDiv.className = 'message-row system';
+                loadingDiv.innerHTML = '<div class="bubble" style="color:#aaa; font-size:14px;">...</div>';
+                history.appendChild(loadingDiv);
+                history.scrollTop = history.scrollHeight;
+            }
+
+            try {
+                const res = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Access-Token': inviteCode,
+                        'X-Device-Id': deviceId,
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({ 
+                        user_input: payload.user_input, 
+                        encrypted_state: state.token,
+                        npc_id: payload.npc_id 
+                    })
+                });
+
+                if(loadingDiv.parentNode) history.removeChild(loadingDiv); // 移除loading
+
+                if (res.status === 403) { alert("设备校验失败"); localStorage.clear(); location.reload(); return; }
+                if (res.status === 401) { alert("验证失效"); location.reload(); return; }
+
+                const data = await res.json();
+                state.token = data.new_encrypted_state;
+                state.uiType = data.ui_type || 'text';
+                state.uiOptions = data.ui_options || [];
+                
+                if(data.bg_image) container.style.backgroundImage = `url('/images/${data.bg_image}')`;
+                if(data.reply_text) addMsg(data.reply_text, 'system', data.sender_name);
+                
+                renderUI();
+            } catch(e) { 
+                if(loadingDiv.parentNode) history.removeChild(loadingDiv);
+                alert("网络连接错误");
+            }
+        }
+
+        function addMsg(text, type, sender) {
+            const div = document.createElement('div');
+            div.className = `message-row ${type}`;
+            let finalHtml = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+            finalHtml = finalHtml.replace(/\[img:(.*?)\]/g, '<img src="/images/$1" class="clue-img">');
+            
+            let avatarUrl = '';
+            const map = {'李德福':'npc_lidefu.png', '赵虎':'npc_zhaohu.png', '顾琼':'npc_guqiong.png', '韩子敬':'npc_hanzijing.png', '清虚子':'npc_qingxuzi.png'};
+            if(map[sender]) avatarUrl = `/images/${map[sender]}`;
+
+            let avatarHtml = type === 'system' && sender !== '系统' && sender !== '调查' && sender !== '场景' && sender !== '强制剧情' ? 
+                `<div class="avatar" style="background-image:url('${avatarUrl}')"></div>` : '';
+
+            div.innerHTML = `${avatarHtml}<div class="bubble">${finalHtml}</div>`;
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function renderUI() {
+            controls.innerHTML = '';
+            
+            if(['select_room', 'select_npc', 'select_clue'].includes(state.uiType)) {
+                const grid = document.createElement('div');
+                grid.className = 'card-grid';
+                state.uiOptions.forEach(opt => {
+                    const btn = document.createElement('div');
+                    btn.className = 'card-btn';
+                    const imgUrl = opt.image ? `/images/${opt.image}` : 'https://placehold.co/100x100/e0e0e0/aeaeae?text=?';
+                    btn.innerHTML = `<img src="${imgUrl}"><span>${opt.label}</span>`;
+                    btn.onclick = () => handleAction(opt);
+                    grid.appendChild(btn);
+                });
+                controls.appendChild(grid);
+                addCancelBtn();
+            } 
+            else if(state.uiType === 'text') {
+                controls.innerHTML = `
+                    <button class="text-btn" onclick="send({user_input:'CMD_SHOW_SEARCH_MENU'})">🔍 搜查现场</button>
+                    <button class="text-btn" onclick="send({user_input:'CMD_SHOW_TALK_MENU'})">🗣️ 盘问众人</button>
+                    <button class="text-btn" onclick="send({user_input:'系统菜单'})">📜 查看卷宗</button>
+                    <button class="text-btn red" onclick="send({user_input:'CMD_SHOW_ACCUSE_MENU'})">👉 指认凶手</button>
+                `;
+            }
+            else if(state.uiType === 'room_view') {
+                const div = document.createElement('div'); div.className = 'card-grid';
+                state.uiOptions.forEach(opt => {
+                    if(opt.action_type === 'EXIT') return;
+                    const btn = document.createElement('button'); btn.className = 'card-btn';
+                    btn.innerHTML = `<span>🔍 ${opt.label}</span>`; btn.onclick = () => handleAction(opt);
+                    div.appendChild(btn);
+                });
+                controls.appendChild(div);
+                
+                const exit = state.uiOptions.find(o => o.action_type === 'EXIT');
+                if(exit) { 
+                    const b = document.createElement('button'); b.className = 'text-btn'; b.style.marginTop='10px'; b.innerText = '🔙 退出搜查'; 
+                    b.onclick = () => handleAction(exit); controls.appendChild(b); 
+                }
+            }
+            else if(state.uiType === 'chat_mode') {
+                const div = document.createElement('div'); div.className = 'chat-input';
+                div.innerHTML = `<input id="chat-in" placeholder="输入问题..." onkeydown="if(event.key==='Enter')sendChat()"><button onclick="sendChat()">发送</button>`;
+                controls.appendChild(div);
+                state.uiOptions.forEach(opt => {
+                     const b = document.createElement('button'); 
+                     b.className = opt.action_type === 'EXIT' ? 'text-btn red' : 'text-btn';
+                     b.style.marginTop='5px'; b.innerText = opt.label; b.onclick = () => handleAction(opt); 
+                     controls.appendChild(b);
+                });
+            }
+        }
+
+        function handleAction(opt) {
+            let p = { user_input: opt.payload, npc_id: null };
+            if(opt.action_type === 'SEARCH_ENTER') p.user_input = `CMD_ENTER_ROOM:${opt.payload}`;
+            else if(opt.action_type === 'INSPECT') p.user_input = `CMD_INSPECT:${opt.payload}`;
+            else if(opt.action_type === 'TALK') { p.npc_id = opt.payload; p.user_input = '（上前）'; }
+            else if(opt.action_type === 'EXIT') p.user_input = `CMD_EXIT:${opt.payload}`;
+            else if(opt.action_type === 'ACCUSE_TARGET') p.user_input = `CMD_ACCUSE_TARGET:${opt.payload}`;
+            else if(opt.action_type === 'ACCUSE_EVIDENCE') p.user_input = `CMD_ACCUSE_EVIDENCE:${opt.payload}`;
+            else if(opt.action_type.includes('ENDING')) p.user_input = opt.action_type === 'ENDING_REVEAL' ? 'CMD_ENDING_REVEAL' : 'CMD_ENDING_SCAPEGOAT';
+            send(p);
+        }
+
+        function addCancelBtn() {
+            const b = document.createElement('button'); b.className = 'text-btn'; b.style.marginTop='10px'; b.innerText = '🔙 返回'; 
+            b.onclick = () => { state.uiType='text'; renderUI(); }; controls.appendChild(b);
+        }
+        
+        window.sendChat = () => { const val = document.getElementById('chat-in').value; if(val) { send({ user_input: val }); document.getElementById('chat-in').value=''; } }
+        
+        init();
+    </script>
+</body>
+</html>
+'''
+
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+print("✅ 页面已生成")
