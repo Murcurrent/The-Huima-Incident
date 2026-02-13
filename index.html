@@ -355,7 +355,18 @@
             b.onclick = () => { state.uiType='text'; renderUI(); }; controls.appendChild(b);
         }
         
-        window.sendChat = () => { const val = document.getElementById('chat-in').value; if(val) { send({ user_input: val }); document.getElementById('chat-in').value=''; } }
+        window.sendChat = () => { 
+    const val = document.getElementById('chat-in').value; 
+    if(val) { 
+        // 自动从后端的返回选项中寻找当前正在对话的 NPC ID，防止后端遗忘
+        let currentNpcId = null;
+        const exitOpt = state.uiOptions.find(o => o.action_type === 'EXIT');
+        if (exitOpt) currentNpcId = exitOpt.payload;
+
+        send({ user_input: val, npc_id: currentNpcId }); 
+        document.getElementById('chat-in').value=''; 
+    } 
+}
         
         init();
     </script>
