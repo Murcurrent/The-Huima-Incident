@@ -127,7 +127,8 @@
         const container = document.getElementById('game-container');
         const history = document.getElementById('chat-history');
         const controls = document.getElementById('controls');
-        
+        let currentTalkingNpc = null;
+
         // 关键修复：主动触发“进入游戏”剧情
         function startGame() {
             renderUI();
@@ -342,7 +343,10 @@
             let p = { user_input: opt.payload, npc_id: null };
             if(opt.action_type === 'SEARCH_ENTER') p.user_input = `CMD_ENTER_ROOM:${opt.payload}`;
             else if(opt.action_type === 'INSPECT') p.user_input = `CMD_INSPECT:${opt.payload}`;
-            else if(opt.action_type === 'TALK') { p.npc_id = opt.payload; p.user_input = '（上前）'; }
+            else if(opt.action_type === 'TALK') {p.npc_id = opt.payload; 
+                                                 p.user_input = '（上前）'; 
+                                                 currentTalkingNpc = opt.payload; // 记录下NPC的名字
+                                                }
             else if(opt.action_type === 'EXIT') p.user_input = `CMD_EXIT:${opt.payload}`;
             else if(opt.action_type === 'ACCUSE_TARGET') p.user_input = `CMD_ACCUSE_TARGET:${opt.payload}`;
             else if(opt.action_type === 'ACCUSE_EVIDENCE') p.user_input = `CMD_ACCUSE_EVIDENCE:${opt.payload}`;
@@ -356,16 +360,12 @@
         }
         
         window.sendChat = () => { 
-    const val = document.getElementById('chat-in').value; 
-    if(val) { 
-        // 自动从后端的返回选项中寻找当前正在对话的 NPC ID，防止后端遗忘
-        let currentNpcId = null;
-        const exitOpt = state.uiOptions.find(o => o.action_type === 'EXIT');
-        if (exitOpt) currentNpcId = exitOpt.payload;
-
-        send({ user_input: val, npc_id: currentNpcId }); 
-        document.getElementById('chat-in').value=''; 
-    } 
+                                const val = document.getElementById('chat-in').value; 
+                                if(val) { 
+                                // send message with npc name
+                                send({ user_input: val, npc_id: currentTalkingNpc }); 
+                                document.getElementById('chat-in').value=''; 
+    }
 }
         
         init();
