@@ -641,6 +641,7 @@ async def handle_talk(user_input, request, current_state, model_id):
     UIAction = _get("UIAction")
     NPC_LIST = _get("NPC_LIST")
     TIME_CYCLES = _get("TIME_CYCLES")
+    objective_clues_db = _get("objective_clues_db")
     load_npc_profile = _get("load_npc_profile")
     call_llm = _get("call_llm")
     get_npc_history = _get("get_npc_history")
