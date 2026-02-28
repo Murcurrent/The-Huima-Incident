@@ -242,6 +242,7 @@ class GameResponse(BaseModel):
     ui_type: str = "text"   
     ui_options: List[UIAction] = []
     bg_image: Optional[str] = None
+    status_info: Optional[Dict[str, Any]] = None
 
 class VerifyRequest(BaseModel):
     token: str
@@ -389,11 +390,11 @@ def get_status_report(state: Dict) -> str:
     for npc in visible_npcs:
         loc = npc_locs.get(npc['id'], "未知")
         loc_rumors.append(f"{npc['name']} 似乎在 {loc}")
-    return f"""🕰️ **当前时辰**：{current_time_str}
-⚡ **剩余精力**：{remaining_ap}/{MAX_AP_PER_CYCLE}
-📍 **所在位置**：{d_state.get('current_location', '未知')}
+    return f"""**当前时辰**：{current_time_str}
+**剩余精力**：{remaining_ap}/{MAX_AP_PER_CYCLE}
+**所在位置**：{d_state.get('current_location', '未知')}
 
-👀 **听到的动静**：
+**听到的动静**：
 {chr(10).join(['- ' + r for r in loc_rumors])}"""
 
 def check_auto_trigger_endgame(state: Dict) -> bool:
@@ -454,9 +455,23 @@ async def call_llm(system_prompt: str, messages: list, model_id: str = None) -> 
             content = resp.json()['choices'][0]['message']['content']
             # 尝试解析 JSON，失败则直接返回原文
             try:
-                return json.loads(content).get("reply", content)
-            except json.JSONDecodeError:
+                parsed = json.loads(content)
+                if isinstance(parsed, dict):
+                    return parsed.get("reply", content)
                 return content
+            except json.JSONDecodeError:
+                # 尝试从文本中提取 "reply" 字段的值
+                import re
+                m = re.search(r'"reply"\s*:\s*"(.*)"', content, re.DOTALL)
+                if m:
+                    return m.group(1).replace('\\n', '\n').replace('\\"', '"')
+                # 清理残留的 JSON 标记
+                cleaned = content.strip()
+                for prefix in ['{"reply":', '{"reply" :', 'reply:', '{reply:']:
+                    if cleaned.lower().startswith(prefix.lower()):
+                        cleaned = cleaned[len(prefix):].strip().strip('"').strip('}').strip('"')
+                        break
+                return cleaned if cleaned else content
         else:
             return f"模型调用失败 ({resp.status_code}): {resp.text[:200]}"
     except Exception as e:
@@ -683,9 +698,17 @@ async def chat_endpoint(
         bg_img = result.get("bg_img")
 
     new_encrypted_token = encrypt_state(current_state)
+    d = current_state["dynamic_state"]
+    status_info = {
+        "day": d.get("day", 1),
+        "time": TIME_CYCLES[d.get("time_idx", 4)],
+        "energy": MAX_AP_PER_CYCLE - d.get("ap_used_this_cycle", 0),
+        "max_energy": MAX_AP_PER_CYCLE,
+    }
     return GameResponse(
         reply_text=reply, sender_name=sender, new_encrypted_state=new_encrypted_token,
-        ui_type=ui_type, ui_options=ui_options, bg_image=bg_img
+        ui_type=ui_type, ui_options=ui_options, bg_image=bg_img,
+        status_info=status_info
     )
 
 game_handlers.init({

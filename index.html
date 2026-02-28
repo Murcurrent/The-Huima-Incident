@@ -72,6 +72,15 @@
         .help-btn:active{background:rgba(184,150,62,0.2)}
 
         /* ===== 聊天区 ===== */
+        .status-bar{
+            background:linear-gradient(90deg,var(--wood),var(--wood-mid),var(--wood));
+            padding:5px 16px;display:flex;justify-content:center;align-items:center;gap:0;
+            font-family:var(--font-body);font-size:12px;color:var(--gold-pale);
+            letter-spacing:1px;z-index:10;
+            border-bottom:1px solid rgba(184,150,62,0.25);
+        }
+        .sb-sep{margin:0 10px;opacity:0.3;font-size:10px}
+
         #chat-history{
             flex:1;padding:14px;overflow-y:auto;z-index:2;
             display:flex;flex-direction:column;gap:12px;
@@ -508,6 +517,15 @@
             </svg>
         </div>
 
+        <!-- 状态栏 -->
+        <div id="status-bar" class="status-bar" style="display:none">
+            <span id="sb-time">辰时</span>
+            <span class="sb-sep">｜</span>
+            <span id="sb-energy">精力 4/4</span>
+            <span class="sb-sep">｜</span>
+            <span id="sb-day">第1日</span>
+        </div>
+
         <div id="chat-history"></div>
         <div class="bottom-area" id="controls"></div>
     </div>
@@ -590,6 +608,7 @@
                 if(r.status===401){alert("验证失效");location.reload();return}
                 const d=await r.json();state.token=d.new_encrypted_state;state.uiType=d.ui_type||'text';state.uiOptions=d.ui_options||[];
                 if(d.bg_image)container.style.backgroundImage=`url('/images/${d.bg_image}')`;
+                if(d.status_info)updateStatusBar(d.status_info);
                 if(d.reply_text)addMsg(d.reply_text,'system',d.sender_name);
                 renderUI();
             }catch(e){if(ld.parentNode)history.removeChild(ld);alert("网络连接错误")}
@@ -700,6 +719,15 @@
         function addCancelBtn(){const b=document.createElement('button');b.className='text-btn ghost';b.innerText='🔙 返回';b.onclick=()=>{state.uiType='text';renderUI()};controls.appendChild(b)}
         window.sendChat=()=>{const v=document.getElementById('chat-in').value;if(v){send({user_input:v,npc_id:state.currentNpcId});document.getElementById('chat-in').value=''}}
 
+        // ===== 状态栏更新 =====
+        function updateStatusBar(info){
+            const bar=document.getElementById('status-bar');
+            if(!info){bar.style.display='none';return}
+            bar.style.display='flex';
+            document.getElementById('sb-time').textContent=info.time||'';
+            document.getElementById('sb-energy').textContent=`精力 ${info.energy}/${info.max_energy}`;
+            document.getElementById('sb-day').textContent=`第${info.day}日`;
+        }
         // ===== 案件卷宗系统 =====
         function showReportOverlay(data){
             const card=document.getElementById('report-card');
