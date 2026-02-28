@@ -631,6 +631,11 @@
                     return;
                 }
                 if(last.includes('游戏已结束')){controls.innerHTML=`<button class="text-btn red" onclick="location.reload()">🔄 重新开始</button>`;return}
+                // 未开始游戏时显示入口
+                if(!state.token){
+                    controls.innerHTML=`<button class="text-btn red" onclick="send({user_input:'进入游戏'})">⚔️ 踏 入 回 马 驿</button>`;
+                    return;
+                }
                 controls.innerHTML=`
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_SEARCH_MENU'})">${ICONS.search}搜查现场</button>
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_TALK_MENU'})">${ICONS.talk}盘问众人</button>
