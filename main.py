@@ -453,25 +453,44 @@ async def call_llm(system_prompt: str, messages: list, model_id: str = None) -> 
             )
         if resp.status_code == 200:
             content = resp.json()['choices'][0]['message']['content']
+            if not content or not content.strip():
+                return "（沉默不语）"
             # 尝试解析 JSON，失败则直接返回原文
             try:
                 parsed = json.loads(content)
                 if isinstance(parsed, dict):
-                    return parsed.get("reply", content)
+                    reply = parsed.get("reply", "")
+                    return reply if reply else content
                 return content
             except json.JSONDecodeError:
-                # 尝试从文本中提取 "reply" 字段的值
-                import re
-                m = re.search(r'"reply"\s*:\s*"(.*)"', content, re.DOTALL)
-                if m:
-                    return m.group(1).replace('\\n', '\n').replace('\\"', '"')
                 # 清理残留的 JSON 标记
                 cleaned = content.strip()
-                for prefix in ['{"reply":', '{"reply" :', 'reply:', '{reply:']:
-                    if cleaned.lower().startswith(prefix.lower()):
-                        cleaned = cleaned[len(prefix):].strip().strip('"').strip('}').strip('"')
-                        break
-                return cleaned if cleaned else content
+                # 去掉 markdown 代码块包裹
+                if cleaned.startswith('```'):
+                    cleaned = cleaned.split('\n', 1)[-1] if '\n' in cleaned else cleaned[3:]
+                    if cleaned.endswith('```'):
+                        cleaned = cleaned[:-3]
+                    cleaned = cleaned.strip()
+                    # 再尝试解析一次
+                    try:
+                        parsed = json.loads(cleaned)
+                        if isinstance(parsed, dict):
+                            reply = parsed.get("reply", "")
+                            return reply if reply else cleaned
+                    except json.JSONDecodeError:
+                        pass
+                # 尝试去掉常见的 JSON 前缀残留
+                for prefix in ['{"reply":', '{"reply" :', 'reply:']:
+                    if cleaned.startswith(prefix):
+                        cleaned = cleaned[len(prefix):].strip()
+                        # 去首尾引号和大括号
+                        if cleaned.startswith('"') and '"' in cleaned[1:]:
+                            cleaned = cleaned[1:cleaned.rindex('"')]
+                        elif cleaned.endswith('}'):
+                            cleaned = cleaned[:-1].strip().strip('"')
+                        cleaned = cleaned.replace('\\n', '\n').replace('\\"', '"')
+                        return cleaned if cleaned else content
+                return content
         else:
             return f"模型调用失败 ({resp.status_code}): {resp.text[:200]}"
     except Exception as e:
