@@ -411,7 +411,7 @@
     <div id="tutorial-overlay" class="tutorial-overlay">
         <div class="tutorial-box">
             <div class="tutorial-header">
-                <h3>📜 破案指南</h3>
+                <h3>破案指南</h3>
                 <button class="tutorial-close" onclick="closeTutorial()">✕</button>
             </div>
             <div class="tutorial-body">
@@ -453,7 +453,7 @@
                 </div>
 
                 <div class="tut-tip">
-                    💡 提示：注意线索之间的关联。某些物品上的标记或花纹可能指向同一个人……
+                    ※ 提示：注意线索之间的关联。某些物品上的标记或花纹可能指向同一个人……
                 </div>
             </div>
         </div>
@@ -462,7 +462,7 @@
     <!-- 案件卷宗弹窗 -->
     <div id="report-overlay" class="report-overlay">
         <div class="report-actions">
-            <button class="btn-save" onclick="saveReportImage()">📷 长按保存图片</button>
+            <button class="btn-save" onclick="saveReportImage()">长按保存图片</button>
             <button class="btn-close" onclick="closeReport()">✕ 关闭</button>
         </div>
         <div id="report-card" class="report-card"></div>
@@ -544,6 +544,22 @@
             dossier:`<svg viewBox="0 0 64 64" fill="none"><rect x="18" y="14" width="28" height="36" rx="1" stroke="#b8963e" stroke-width="1.3" stroke-dasharray="50 2 6 2"/><circle cx="18" cy="14" r="2.5" stroke="#b8963e" stroke-width="1"/><circle cx="46" cy="14" r="2.5" stroke="#b8963e" stroke-width="1"/><circle cx="18" cy="50" r="2.5" stroke="#b8963e" stroke-width="1"/><circle cx="46" cy="50" r="2.5" stroke="#b8963e" stroke-width="1"/><line x1="24" y1="22" x2="40" y2="22" stroke="#b8963e" stroke-width="0.8" opacity="0.5"/><line x1="24" y1="27" x2="38" y2="27" stroke="#b8963e" stroke-width="0.8" opacity="0.5"/><line x1="24" y1="32" x2="40" y2="32" stroke="#b8963e" stroke-width="0.8" opacity="0.5"/><line x1="24" y1="37" x2="36" y2="37" stroke="#b8963e" stroke-width="0.8" opacity="0.5"/><rect x="34" y="38" width="8" height="8" rx="0.5" fill="#912929" opacity="0.12"/></svg>`,
             tribunal:`<svg viewBox="0 0 64 64" fill="none"><path d="M12 40h40v4H12z" stroke="#b8963e" stroke-width="1.2"/><line x1="16" y1="44" x2="16" y2="54" stroke="#b8963e" stroke-width="1.2"/><line x1="48" y1="44" x2="48" y2="54" stroke="#b8963e" stroke-width="1.2"/><rect x="24" y="28" width="16" height="10" rx="1.5" stroke="#b8963e" stroke-width="1.3" transform="rotate(-8 32 33)"/><path d="M20 26l-3-4M44 26l3-4M30 22l-1-4M34 22l1-4" stroke="#d4b96a" stroke-width="0.8" opacity="0.4" stroke-linecap="round"/></svg>`,
             accuse:`<svg viewBox="0 0 64 64" fill="none"><path d="M14 34h20l4-2v-8l2-1v12l-2 1h4v-4l2-1v6l-2 1h3v-3l2-1v5l-2 1h3v-2l2-1v4l-4 2H18l-4-4z" stroke="#f4e4bc" stroke-width="1.2" stroke-linejoin="round"/><path d="M50 28c0 0-4 5-4 8a4 4 0 008 0c0-3-4-8-4-8z" fill="#912929" opacity="0.25" stroke="#f4e4bc" stroke-width="0.6"/></svg>`,
+        };
+        // 内联小图标（用于按钮文字前）
+        const ICO = {
+            door:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.5"><rect x="4" y="2" width="12" height="16" rx="1"/><circle cx="13" cy="10" r="1" fill="#b8963e"/><path d="M2 18h16" stroke-width="1"/></svg>`,
+            back:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.5"><path d="M12 4L6 10l6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            sword:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><path d="M4 16L14 6M14 6v4M14 6h-4M6 14l-2 2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            point:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><path d="M6 10h8M14 10l-3-3M14 10l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            clue:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><rect x="4" y="4" width="12" height="12" rx="1" stroke-dasharray="8 2"/><line x1="7" y1="8" x2="13" y2="8" stroke-width="0.8" opacity="0.5"/><line x1="7" y1="11" x2="11" y2="11" stroke-width="0.8" opacity="0.5"/></svg>`,
+            flame:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#912929" stroke-width="1.3"><path d="M10 3C8 7 5 9 5 13a5 5 0 0010 0c0-4-3-6-5-10z" fill="#912929" opacity="0.15"/></svg>`,
+            seal:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><path d="M4 16h12M6 16V8l4-4 4 4v8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            scroll:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.2"><path d="M5 3h10c1 0 1.5.5 1.5 1.5S16 6 15 6H5c-1 0-1.5.5-1.5 1.5S4 15 5 15h10c1 0 1.5.5 1.5 1.5" stroke-linecap="round"/></svg>`,
+            restart:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.5"><path d="M4 10a6 6 0 1 1 1.5 4" stroke-linecap="round"/><path d="M4 14V10h4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+            inspect:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><circle cx="9" cy="9" r="5"/><path d="M13 13l4 4" stroke-linecap="round"/></svg>`,
+            silent:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><path d="M4 12c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke-linecap="round"/><line x1="7" y1="16" x2="13" y2="16" stroke-linecap="round"/></svg>`,
+            camera:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#b8963e" stroke-width="1.3"><rect x="2" y="6" width="16" height="11" rx="1.5"/><circle cx="10" cy="11.5" r="3"/><path d="M7 6l1-2h4l1 2"/></svg>`,
+            enter:`<svg viewBox="0 0 20 20" width="14" height="14" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="#912929" stroke-width="1.5"><path d="M3 10h10M10 6l4 4-4 4" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 3v14" stroke-linecap="round"/></svg>`,
         };
 
         // ===== NPC SVG 头像 =====
@@ -645,14 +661,14 @@
                     // 结局后显示卷宗按钮 + 重新开始
                     const endType = last.includes('TRUE END') ? 'TRUE_END' : last.includes('NORMAL END') ? 'NORMAL_END' : 'BAD_END';
                     controls.innerHTML=`
-                        <button class="text-btn" onclick="send({user_input:'CMD_SHOW_REPORT:${endType}'})">📜 查看案件卷宗</button>
-                        <button class="text-btn red" onclick="location.reload()">🔄 重新开始</button>`;
+                        <button class="text-btn" onclick="send({user_input:'CMD_SHOW_REPORT:${endType}'})">${ICO.scroll} 查看案件卷宗</button>
+                        <button class="text-btn red" onclick="location.reload()">${ICO.restart} 重新开始</button>`;
                     return;
                 }
-                if(last.includes('游戏已结束')){controls.innerHTML=`<button class="text-btn red" onclick="location.reload()">🔄 重新开始</button>`;return}
+                if(last.includes('游戏已结束')){controls.innerHTML=`<button class="text-btn red" onclick="location.reload()">${ICO.restart} 重新开始</button>`;return}
                 // 未开始游戏时显示入口
                 if(!state.token){
-                    controls.innerHTML=`<button class="text-btn red" onclick="send({user_input:'进入游戏'})">⚔️ 踏 入 回 马 驿</button>`;
+                    controls.innerHTML=`<button class="text-btn red" onclick="send({user_input:'进入游戏'})">${ICO.enter} 踏 入 回 马 驿</button>`;
                     return;
                 }
                 controls.innerHTML=`
@@ -665,10 +681,10 @@
             }
             else if(state.uiType==='room_view'){
                 const g=document.createElement('div');g.className='card-grid';
-                state.uiOptions.forEach(o=>{if(o.action_type==='EXIT')return;const b=document.createElement('div');b.className='card-btn';b.innerHTML=`<span>🔍 ${o.label}</span>`;b.onclick=()=>handleAction(o);g.appendChild(b)});
+                state.uiOptions.forEach(o=>{if(o.action_type==='EXIT')return;const b=document.createElement('div');b.className='card-btn';b.innerHTML=`<span>${ICO.inspect} ${o.label}</span>`;b.onclick=()=>handleAction(o);g.appendChild(b)});
                 controls.appendChild(g);
                 const ex=state.uiOptions.find(o=>o.action_type==='EXIT');
-                if(ex){const b=document.createElement('button');b.className='text-btn';b.style.marginTop='8px';b.innerText='🚪 退出搜查';b.onclick=()=>handleAction(ex);controls.appendChild(b)}
+                if(ex){const b=document.createElement('button');b.className='text-btn';b.style.marginTop='8px';b.innerHTML=ICO.door+' 退出搜查';b.onclick=()=>handleAction(ex);controls.appendChild(b)}
             }
             else if(state.uiType==='chat_mode'){
                 const d=document.createElement('div');d.className='chat-input';
@@ -716,7 +732,7 @@
             send(p);
         }
 
-        function addCancelBtn(){const b=document.createElement('button');b.className='text-btn ghost';b.innerText='🔙 返回';b.onclick=()=>{state.uiType='text';renderUI()};controls.appendChild(b)}
+        function addCancelBtn(){const b=document.createElement('button');b.className='text-btn ghost';b.innerHTML=ICO.back+' 返回';b.onclick=()=>{state.uiType='text';renderUI()};controls.appendChild(b)}
         window.sendChat=()=>{const v=document.getElementById('chat-in').value;if(v){send({user_input:v,npc_id:state.currentNpcId});document.getElementById('chat-in').value=''}}
 
         // ===== 状态栏更新 =====
@@ -740,7 +756,7 @@
 
             // 信任度柱状图
             const trustBars=(data.ally_name&&data.enemy_name)?`
-                <div class="rc-section-title">🤝 人心向背</div>
+                <div class="rc-section-title">人心向背</div>
                 <div style="margin-bottom:12px">
                     <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--ink-mid);margin-bottom:3px">
                         <span>${escapeHtml(data.ally_name)}</span><span>信任 ${data.ally_trust}</span>
@@ -758,12 +774,12 @@
 
             // 真相揭秘
             const truthItems=data.truth_reveal?`
-                <div class="rc-section-title">🔍 真相大白</div>
+                <div class="rc-section-title">真相大白</div>
                 <div class="rc-truth-item"><b>死者</b>：${escapeHtml(data.truth_reveal.victim)}</div>
                 <div class="rc-truth-item"><b>凶手</b>：${escapeHtml(data.truth_reveal.killer)}</div>
                 <div class="rc-truth-item"><b>主谋</b>：${escapeHtml(data.truth_reveal.mastermind)}</div>
                 <div class="rc-truth-item"><b>动机</b>：${escapeHtml(data.truth_reveal.motive)}</div>
-                <div class="rc-section-title">📖 众生相</div>
+                <div class="rc-section-title">众生相</div>
                 ${data.truth_reveal.others.map(o=>`<div class="rc-truth-item">${escapeHtml(o)}</div>`).join('')}
             `:'';
 

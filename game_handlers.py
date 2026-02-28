@@ -38,7 +38,7 @@ def adjust_trust(d_state, npc_id, rule_key):
 #new handlers must go after talk handler
 
 # ------------------------------------------
-# 📊 游戏统计辅助函数
+# ◈ 游戏统计辅助函数
 # ------------------------------------------
 def _compute_game_stats(current_state):
     """从 dynamic_state 中提取各种统计数据，供结局和报告使用"""
@@ -119,7 +119,7 @@ def _compute_game_stats(current_state):
 
 
 # ------------------------------------------
-# 🔚 结局叙事模板（LLM 生成用）
+# ◈ 结局叙事模板（LLM 生成用）
 # ------------------------------------------
 _ENDING_TEMPLATES = {
     "TRUE_END": {
@@ -202,7 +202,7 @@ async def _generate_ending_narration(ending_type: str, current_state: dict, mode
 - 韩子敬：胆小懦弱的落魄书生，手无寸铁，遇事只会发抖和逃跑。他唯一的"武器"是笔墨。绝对不可能有任何武力行为。
 - 清虚子：油嘴滑舌的江湖骗子道士，贪财怕死，遇到危险只会求饶或耍嘴皮子。没有任何武力。
 
-⚠️ 严禁让韩子敬或清虚子做出任何武力行为（拔刀、格挡、打斗等）。韩子敬只能做：作证、喊话、挡在前面求情、瑟瑟发抖等文弱书生的行为。清虚子只能做：求饶、狡辩、逃跑等行为。只有顾琼和赵虎可以有武力动作。
+【严禁让韩子敬或清虚子做出任何武力行为（拔刀、格挡、打斗等）。韩子敬只能做：作证、喊话、挡在前面求情、瑟瑟发抖等文弱书生的行为。清虚子只能做：求饶、狡辩、逃跑等行为。只有顾琼和赵虎可以有武力动作。
 
 【玩家的调查数据】
 - 收集线索：{stats['found_clues']}/{stats['total_clues']}
@@ -275,7 +275,7 @@ async def handle_accuse(user_input, request, current_state, model_id):
         result["ui_type"] = "select_npc"
         for npc in NPC_LIST:
             if npc["id"] != "npc_lidefu":
-                result["ui_options"].append(UIAction(label=f"👉 指认 {npc['name']}", action_type="ACCUSE_TARGET", payload=npc["id"]))
+                result["ui_options"].append(UIAction(label=f"» 指认 {npc['name']}", action_type="ACCUSE_TARGET", payload=npc["id"]))
         result["done"] = True
 
     # --- 选凶手 → 选凶器 ---
@@ -289,12 +289,12 @@ async def handle_accuse(user_input, request, current_state, model_id):
         collected_ids = current_state["dynamic_state"]["inventory"]["clues_collected"]
         if not collected_ids:
             result["reply"] += "\n\n(你两手空空，没有任何证据...)"
-            result["ui_options"].append(UIAction(label="😰 哑口无言", action_type="ACCUSE_EVIDENCE", payload="none"))
+            result["ui_options"].append(UIAction(label="… 哑口无言", action_type="ACCUSE_EVIDENCE", payload="none"))
         else:
             for cid in collected_ids:
                 clue = objective_clues_db.get(cid)
                 if clue:
-                    result["ui_options"].append(UIAction(label=f"📦 {clue['name']}", action_type="ACCUSE_EVIDENCE", payload=cid))
+                    result["ui_options"].append(UIAction(label=f"▪ {clue['name']}", action_type="ACCUSE_EVIDENCE", payload=cid))
         result["done"] = True
 
     # --- 判定结局（转场） ---
@@ -324,8 +324,8 @@ async def handle_accuse(user_input, request, current_state, model_id):
                 '"选吧。"'
             )
             result["ui_type"] = "chat_mode"
-            result["ui_options"].append(UIAction(label="🔥 公布真相——纵万死不辞", action_type="ENDING_REVEAL", payload="TRUE"))
-            result["ui_options"].append(UIAction(label="🤐 隐瞒真相——留得青山在", action_type="ENDING_SCAPEGOAT", payload="FALSE"))
+            result["ui_options"].append(UIAction(label="◆ 公布真相——纵万死不辞", action_type="ENDING_REVEAL", payload="TRUE"))
+            result["ui_options"].append(UIAction(label="◇ 隐瞒真相——留得青山在", action_type="ENDING_SCAPEGOAT", payload="FALSE"))
         else:
             # 错误指认 → BAD END (LLM生成)
             current_state["dynamic_state"]["ending_type"] = "BAD_END"
@@ -334,7 +334,7 @@ async def handle_accuse(user_input, request, current_state, model_id):
             result["sender"] = "结局：含冤而死"
             result["reply"] = narration + '\n\n**【BAD END：含冤而死】**'
             result["ui_type"] = "text"
-            result["ui_options"].append(UIAction(label="📜 查看案件卷宗", action_type="SHOW_REPORT", payload="BAD_END"))
+            result["ui_options"].append(UIAction(label="▸ 查看案件卷宗", action_type="SHOW_REPORT", payload="BAD_END"))
         result["done"] = True
 
     # --- 结局分支：公布真相 ---
@@ -345,7 +345,7 @@ async def handle_accuse(user_input, request, current_state, model_id):
         result["sender"] = "结局：血染回马驿"
         result["reply"] = narration + '\n\n**【TRUE END：血染回马驿】**'
         result["ui_type"] = "text"
-        result["ui_options"].append(UIAction(label="📜 查看案件卷宗", action_type="SHOW_REPORT", payload="TRUE_END"))
+        result["ui_options"].append(UIAction(label="▸ 查看案件卷宗", action_type="SHOW_REPORT", payload="TRUE_END"))
         result["done"] = True
 
     # --- 结局分支：替罪羊 ---
@@ -356,7 +356,7 @@ async def handle_accuse(user_input, request, current_state, model_id):
         result["sender"] = "结局：不安的良心"
         result["reply"] = narration + '\n\n**【NORMAL END：不安的良心】**'
         result["ui_type"] = "text"
-        result["ui_options"].append(UIAction(label="📜 查看案件卷宗", action_type="SHOW_REPORT", payload="NORMAL_END"))
+        result["ui_options"].append(UIAction(label="▸ 查看案件卷宗", action_type="SHOW_REPORT", payload="NORMAL_END"))
         result["done"] = True
 
     # --- 案件卷宗报告 ---
@@ -389,7 +389,7 @@ async def handle_accuse(user_input, request, current_state, model_id):
         result["reply"] = "REPORT_DATA:" + json.dumps(report_data, ensure_ascii=False)
         result["sender"] = "案件卷宗"
         result["ui_type"] = "ending_report"
-        result["ui_options"].append(UIAction(label="🔄 重新开始", action_type="RELOAD", payload="RELOAD"))
+        result["ui_options"].append(UIAction(label="▸ 重新开始", action_type="RELOAD", payload="RELOAD"))
         result["done"] = True
 
     return result
@@ -423,8 +423,8 @@ async def handle_confront(user_input, request, current_state, model_id):
         result["reply"] = "你决定亮出证据，逼问嫌疑人。请选择对质对象："
         result["ui_type"] = "select_npc"
         for npc in NPC_LIST:
-            result["ui_options"].append(UIAction(label=f"⚔️ 对质 {npc['name']}", action_type="CONFRONT_SELECT_NPC", payload=npc["id"]))
-        result["ui_options"].append(UIAction(label="🔙 取消", action_type="CANCEL", payload="MAIN"))
+            result["ui_options"].append(UIAction(label=f"» 对质 {npc['name']}", action_type="CONFRONT_SELECT_NPC", payload=npc["id"]))
+        result["ui_options"].append(UIAction(label="‹ 取消", action_type="CANCEL", payload="MAIN"))
         result["done"] = True
     
     # 对质B: 选择出示的线索
@@ -440,8 +440,8 @@ async def handle_confront(user_input, request, current_state, model_id):
             for cid in collected_ids:
                 clue = objective_clues_db.get(cid)
                 if clue:
-                    result["ui_options"].append(UIAction(label=f"📦 {clue['name']}", action_type="CONFRONT_WITH_CLUE", payload=f"{target_npc_id}:{cid}"))
-            result["ui_options"].append(UIAction(label="🔙 返回选人", action_type="SHOW_CONFRONT_MENU", payload="BACK"))
+                    result["ui_options"].append(UIAction(label=f"▪ {clue['name']}", action_type="CONFRONT_WITH_CLUE", payload=f"{target_npc_id}:{cid}"))
+            result["ui_options"].append(UIAction(label="‹ 返回选人", action_type="SHOW_CONFRONT_MENU", payload="BACK"))
         result["done"] = True
     
     # 对质C: 执行对质（含 LLM 调用）
@@ -467,10 +467,10 @@ async def handle_confront(user_input, request, current_state, model_id):
         )
 
         result["ui_type"] = "chat_mode"
-        result["ui_options"].append(UIAction(label="🚪 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
+        result["ui_options"].append(UIAction(label="▸ 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
         collected_ids = current_state["dynamic_state"]["inventory"]["clues_collected"]
         if collected_ids:
-            result["ui_options"].append(UIAction(label="⚔️ 继续出示证据", action_type="CONFRONT_SELECT_NPC", payload=target_npc_id))
+            result["ui_options"].append(UIAction(label="» 继续出示证据", action_type="CONFRONT_SELECT_NPC", payload=target_npc_id))
 
         npc_profile = load_npc_profile(target_npc_id)
         if npc_profile:
@@ -541,11 +541,11 @@ async def handle_search(user_input, request, current_state, model_id):
                     # 信任度 >= 70 时 NPC 允许进入
                     trust = d_state.get("npc_trust", {}).get(owner_id, 50)
                     if trust >= 70:
-                        result["reply"] = f"💬 {owner_name}看了你一眼，点点头让开了路。\n（信任度足够，允许进入搜查）\n\n"
+                        result["reply"] = f"{owner_name}看了你一眼，点点头让开了路。\n（信任度足够，允许进入搜查）\n\n"
                     else:
                         GameResponse = _get("GameResponse")
                         result["early_return"] = GameResponse(
-                            reply_text=f"⛔ **无法进入**\n\n{owner_name}正在房内，你无法搜查。",
+                            reply_text=f"【无法进入】\n\n{owner_name}正在房内，你无法搜查。",
                             sender_name="系统阻拦",
                             new_encrypted_state=encrypt_state(current_state),
                             ui_type="text"
@@ -562,8 +562,8 @@ async def handle_search(user_input, request, current_state, model_id):
             result["reply"] += f"你进入了【{target_room}】。"
             result["ui_type"] = "room_view"
             for furniture in room_data["furniture_list"]:
-                result["ui_options"].append(UIAction(label=f"🔍 检查{furniture}", action_type="INSPECT", payload=f"{target_room}:{furniture}"))
-            result["ui_options"].append(UIAction(label="🚪 退出搜查 ", action_type="EXIT", payload="SEARCH"))
+                result["ui_options"].append(UIAction(label=f"▸ 检查{furniture}", action_type="INSPECT", payload=f"{target_room}:{furniture}"))
+            result["ui_options"].append(UIAction(label="▸ 退出搜查 ", action_type="EXIT", payload="SEARCH"))
             d_state["room_inspect_count"] = 0
         except IndexError:
             result["reply"] = "指令错误。"
@@ -591,8 +591,8 @@ async def handle_search(user_input, request, current_state, model_id):
             result["sender"] = "调查结果"
             result["ui_type"] = "room_view"
             for furniture in room_data["furniture_list"]:
-                result["ui_options"].append(UIAction(label=f"🔍 检查{furniture}", action_type="INSPECT", payload=f"{room_name}:{furniture}"))
-            result["ui_options"].append(UIAction(label="🚪 退出搜查", action_type="EXIT", payload="SEARCH"))
+                result["ui_options"].append(UIAction(label=f"▸ 检查{furniture}", action_type="INSPECT", payload=f"{room_name}:{furniture}"))
+            result["ui_options"].append(UIAction(label="▸ 退出搜查", action_type="EXIT", payload="SEARCH"))
             if custom_text:
                 result["reply"] += custom_text
             elif clue_id:
@@ -608,7 +608,7 @@ async def handle_search(user_input, request, current_state, model_id):
                     
                     if current_count >= difficulty:
                         # 找到了！
-                        result["reply"] += f"你在【{furniture_name}】处发现了：\n\n📄 **{clue['name']}**\n{clue['description']}"
+                        result["reply"] += f"你在【{furniture_name}】处发现了：\n\n▪ **{clue['name']}**\n{clue['description']}"
                         if clue['id'] not in d_state["inventory"]["clues_collected"]:
                             d_state["inventory"]["clues_collected"].append(clue['id'])
                     else:
@@ -660,10 +660,10 @@ async def handle_talk(user_input, request, current_state, model_id):
     # NPC 自由对话（request.npc_id 有值时）
     elif request.npc_id:
         result["ui_type"] = "chat_mode"
-        result["ui_options"].append(UIAction(label="🚪 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
+        result["ui_options"].append(UIAction(label="▸ 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
         collected_ids = current_state["dynamic_state"]["inventory"]["clues_collected"]
         if collected_ids:
-            result["ui_options"].append(UIAction(label="⚔️ 出示证据对质", action_type="CONFRONT_SELECT_NPC", payload=request.npc_id))
+            result["ui_options"].append(UIAction(label="» 出示证据对质", action_type="CONFRONT_SELECT_NPC", payload=request.npc_id))
 
         npc_profile = load_npc_profile(request.npc_id)
        
@@ -724,20 +724,20 @@ async def handle_tribunal(user_input, request, current_state, model_id):
             return result
         
         result["reply"] = (
-            f"📜 **召集公堂** (已用 {used}/{MAX_TRIBUNALS} 次)\n\n"
+            f"◆ **召集公堂** (已用 {used}/{MAX_TRIBUNALS} 次)\n\n"
             f"你可以把两个嫌疑人叫到大堂当面对质。\n"
-            f"⚠️ 这会消耗大量时间（跳过2个时辰）\n\n"
+            f"※ 这会消耗大量时间（跳过2个时辰）\n\n"
             f"请选择第一个对质对象："
         )
         result["ui_type"] = "select_npc"
         for npc in NPC_LIST:
             result["ui_options"].append(UIAction(
-                label=f"👤 {npc['name']}", 
+                label=f"» {npc['name']}", 
                 action_type="TRIBUNAL_SELECT_A", 
                 payload=npc["id"]
             ))
         result["ui_options"].append(UIAction(
-            label="🔙 取消", action_type="CANCEL", payload="MAIN"
+            label="‹ 取消", action_type="CANCEL", payload="MAIN"
         ))
         result["done"] = True
     
@@ -752,12 +752,12 @@ async def handle_tribunal(user_input, request, current_state, model_id):
         for npc in NPC_LIST:
             if npc["id"] != npc_a_id:
                 result["ui_options"].append(UIAction(
-                    label=f"👤 {npc['name']}", 
+                    label=f"» {npc['name']}", 
                     action_type="TRIBUNAL_SELECT_B", 
                     payload=npc["id"]
                 ))
         result["ui_options"].append(UIAction(
-            label="🔙 重新选择", action_type="SHOW_TRIBUNAL_MENU", payload="BACK"
+            label="‹ 重新选择", action_type="SHOW_TRIBUNAL_MENU", payload="BACK"
         ))
         result["done"] = True
     
@@ -784,7 +784,7 @@ async def handle_tribunal(user_input, request, current_state, model_id):
             clue = objective_clues_db.get(cid)
             if clue:
                 result["ui_options"].append(UIAction(
-                    label=f"📦 {clue['name']}", 
+                    label=f"▪ {clue['name']}", 
                     action_type="TRIBUNAL_EXECUTE", 
                     payload=cid
                 ))
