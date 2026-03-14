@@ -27,6 +27,36 @@
                 url("data:image/svg+xml,%3Csvg width='80' height='80' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.08'/%3E%3C/svg%3E"),
                 repeating-linear-gradient(45deg,rgba(26,20,16,0.3) 0,rgba(26,20,16,0.3) 1px,transparent 0,transparent 50%);
             background-size:auto,24px 24px;
+            position:relative;
+        }
+
+        /* ===== PC 两侧装饰（宽屏才显示）===== */
+        .pc-side{
+            display:none;
+            position:fixed;top:0;bottom:0;
+            width:calc((100vw - 520px)/2);
+            pointer-events:none;z-index:0;overflow:hidden;
+        }
+        .pc-side.left{ left:0 }
+        .pc-side.right{ right:0 }
+        .pc-side svg{ position:absolute;inset:0;width:100%;height:100% }
+
+        /* 竖排诗句 */
+        .pc-verse{
+            position:absolute;top:50%;transform:translateY(-50%);
+            font-family:var(--font-title);writing-mode:vertical-rl;
+            text-orientation:mixed;letter-spacing:5px;line-height:2;
+            user-select:none;pointer-events:none;
+        }
+        .pc-verse.near{ font-size:14px;color:rgba(184,150,62,0.28) }
+        .pc-verse.far{  font-size:11px;color:rgba(184,150,62,0.13) }
+        .pc-side.left  .pc-verse.near{ left:max(14px, calc(50% - 48px)) }
+        .pc-side.left  .pc-verse.far{  left:max(38px, calc(50% - 22px)) }
+        .pc-side.right .pc-verse.near{ right:max(14px, calc(50% - 48px)) }
+        .pc-side.right .pc-verse.far{  right:max(38px, calc(50% - 22px)) }
+
+        @media(min-width:600px){
+            .pc-side{ display:block }
         }
 
         /* ===== 主容器 ===== */
@@ -80,6 +110,126 @@
             border-bottom:1px solid rgba(184,150,62,0.25);
         }
         .sb-sep{margin:0 10px;opacity:0.3;font-size:10px}
+        .scene-bar{
+            background:linear-gradient(90deg,var(--wood-mid),var(--wood),var(--wood-mid));
+            padding:3px 16px;display:flex;justify-content:center;align-items:center;gap:8px;
+            font-family:var(--font-body);font-size:11px;color:var(--gold);
+            letter-spacing:1.5px;z-index:10;
+            border-bottom:1px solid rgba(184,150,62,0.15);
+            opacity:0.85;
+        }
+        .sb-hint{
+            color:var(--jade);font-size:10px;letter-spacing:1px;
+            max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+        }
+        /* ④ NPC 目击气泡 */
+        .sighting-bubble{
+            background:linear-gradient(160deg,rgba(46,31,24,0.06),rgba(46,31,24,0.02));
+            border-left:3px solid var(--ink-light);
+            color:var(--ink-light);font-size:13px;font-style:italic;
+            letter-spacing:0.5px;padding:10px 14px;line-height:1.8;
+            border-radius:0 8px 8px 0;
+        }
+        /* ⑦ 场景氛围条 */
+        #atmo-bar{
+            background:linear-gradient(90deg,rgba(26,17,13,0.95),rgba(46,31,24,0.9),rgba(26,17,13,0.95));
+            padding:6px 16px;text-align:center;
+            font-family:var(--font-body);font-size:11.5px;color:var(--gold);
+            letter-spacing:2px;z-index:10;
+            border-bottom:1px solid rgba(184,150,62,0.15);
+            min-height:0;overflow:hidden;
+            transition:max-height 0.4s ease,opacity 0.4s ease,padding 0.4s ease;
+            max-height:0;opacity:0;padding:0 16px;
+        }
+        #atmo-bar.show{max-height:40px;opacity:1;padding:6px 16px}
+
+        /* ⑥ 时间轴重建小游戏 */
+        #timeline-overlay{
+            display:none;position:absolute;inset:0;z-index:60;
+            flex-direction:column;background:var(--paper);overflow:hidden;
+        }
+        #timeline-overlay.active{display:flex}
+        .tl-header{
+            background:linear-gradient(180deg,#1a110d,var(--wood));
+            padding:8px 14px;display:flex;align-items:center;justify-content:space-between;
+            border-bottom:2px solid var(--gold);flex-shrink:0;
+        }
+        .tl-title{font-family:var(--font-title);font-size:16px;color:var(--gold-pale);letter-spacing:4px}
+        .tl-close{background:none;border:1px solid rgba(184,150,62,.4);color:var(--gold-pale);
+            font-family:var(--font-title);font-size:12px;padding:4px 10px;cursor:pointer}
+        .tl-progress{
+            background:var(--wood);padding:6px 14px;display:flex;align-items:center;gap:10px;
+            font-size:11px;color:var(--gold-pale);flex-shrink:0;
+            border-bottom:1px solid rgba(184,150,62,0.2);
+        }
+        .tl-prog-bar{flex:1;height:4px;background:rgba(184,150,62,0.15);border-radius:2px;overflow:hidden}
+        .tl-prog-fill{height:100%;background:var(--gold);border-radius:2px;transition:width 0.3s}
+        .tl-body{flex:1;overflow-y:auto;padding:12px}
+        .tl-hint{text-align:center;font-size:11px;color:var(--ink-light);padding:8px;letter-spacing:1px}
+        /* 时间轴轨道 */
+        .tl-track{position:relative;padding:0 0 0 60px;min-height:200px}
+        .tl-track::before{content:'';position:absolute;left:48px;top:0;bottom:0;width:2px;background:var(--paper-dark)}
+        .tl-time-label{
+            font-family:var(--font-title);font-size:12px;color:var(--cinnabar);
+            position:absolute;left:0;width:48px;text-align:right;letter-spacing:1px;
+        }
+        /* 插槽 */
+        .tl-slot{
+            position:relative;min-height:52px;margin-bottom:6px;
+            border:1.5px dashed var(--paper-dark);border-radius:4px;
+            display:flex;align-items:center;justify-content:center;
+            transition:border-color 0.2s,background 0.2s;
+        }
+        .tl-slot.drag-over{border-color:var(--gold);background:rgba(184,150,62,0.06)}
+        .tl-slot.filled{border:none;background:none}
+        .tl-slot-placeholder{font-size:11px;color:var(--paper-dark);letter-spacing:1px}
+        /* 事件卡片 */
+        .tl-card{
+            background:linear-gradient(160deg,#faf5ec,var(--paper-warm));
+            border:1px solid var(--paper-dark);border-left:3px solid var(--gold);
+            border-radius:0 6px 6px 0;padding:8px 12px;
+            font-size:12px;color:var(--ink);line-height:1.6;
+            cursor:grab;user-select:none;width:100%;
+            box-shadow:1px 2px 4px rgba(0,0,0,0.04);
+        }
+        .tl-card:active{cursor:grabbing;opacity:0.85}
+        .tl-card.locked{opacity:0.4;cursor:default;border-left-color:var(--paper-dark)}
+        .tl-card.secret{border-left-color:var(--cinnabar)}
+        .tl-card.selected{border-color:var(--gold);box-shadow:0 0 0 2px rgba(184,150,62,0.3);background:linear-gradient(160deg,#faf5ec,#f5ecdb)}
+        .tl-card .tl-card-time{font-family:var(--font-title);font-size:11px;color:var(--cinnabar);letter-spacing:1px}
+        .tl-card .tl-card-text{margin-top:2px}
+        /* 卡片池 */
+        .tl-pool{
+            background:var(--paper-dark);border-top:2px solid rgba(184,150,62,0.2);
+            padding:10px;flex-shrink:0;max-height:180px;overflow-y:auto;
+        }
+        .tl-pool-title{font-family:var(--font-title);font-size:11px;color:var(--ink-light);
+            letter-spacing:2px;margin-bottom:6px}
+        .tl-pool-cards{display:flex;flex-direction:column;gap:5px}
+        /* 解锁提示 */
+        .tl-unlock{
+            text-align:center;padding:10px;font-size:12px;color:var(--jade);
+            background:rgba(58,107,90,0.06);border:1px solid rgba(58,107,90,0.2);
+            border-radius:4px;margin:8px 0;letter-spacing:1px;
+        }
+        .tl-monologue{
+            background:linear-gradient(160deg,rgba(46,31,24,0.08),rgba(46,31,24,0.03));
+            border-left:3px solid var(--cinnabar);border-radius:0 6px 6px 0;
+            padding:12px 14px;font-size:13px;color:var(--ink);line-height:1.8;
+            font-style:italic;margin:10px 0;
+        }
+        /* 独白气泡（放入正确卡片时弹出）*/
+        .tl-voice{
+            padding:8px 12px;margin:4px 0 8px;
+            font-size:12px;font-style:italic;color:var(--ink-mid);
+            border-left:2px solid var(--gold);line-height:1.6;
+            animation:tlVoiceIn 0.4s ease;
+        }
+        .tl-voice .tl-voice-who{
+            font-family:var(--font-title);font-size:11px;color:var(--cinnabar);
+            font-style:normal;letter-spacing:1px;margin-bottom:2px;
+        }
+        @keyframes tlVoiceIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
 
         #chat-history{
             flex:1;padding:14px;overflow-y:auto;z-index:2;
@@ -180,6 +330,310 @@
             padding:0 16px;background:var(--wood);color:var(--paper);
             border:none;border-radius:3px;font-weight:bold;cursor:pointer;
         }
+        .card-btn.cond-clue{
+            background:linear-gradient(160deg,#f0f7f2,#e6f2ea);
+            border-color:#9abfa8;box-shadow:0 2px 0 #9abfa8;
+        }
+        .card-btn.cond-clue .cond-icon{
+            font-size:14px;color:#2a5c4e;line-height:1;
+        }
+        .card-btn.cond-clue .cond-label{
+            font-size:11px;color:#2a5c4e;font-weight:600;line-height:1.4;
+        }
+        .card-btn.cond-clue.dim{
+            background:linear-gradient(160deg,#f0ebe2,#e8e0d2);
+            border-color:#c4b49a;border-style:dashed;
+            box-shadow:none;opacity:0.78;
+        }
+        .card-btn.cond-clue.dim .cond-icon,
+        .card-btn.cond-clue.dim .cond-label{color:var(--ink-light)}
+        .cond-badge{
+            font-size:9px;background:rgba(42,92,78,.12);color:#2a5c4e;
+            border:0.5px solid rgba(42,92,78,.3);padding:1px 5px;border-radius:2px;
+        }
+        .dim-badge{
+            font-size:9px;background:rgba(74,63,50,.08);color:var(--ink-light);
+            border:0.5px solid rgba(74,63,50,.2);padding:1px 5px;border-radius:2px;
+        }
+        /* 对话中的观察按钮 */
+        .observe-btn{
+            padding:8px 14px;border-radius:2px;cursor:pointer;
+            font-family:var(--font-body);font-size:13px;
+            background:linear-gradient(160deg,#f0f7f2,#e6f2ea);
+            border:1px solid #9abfa8;color:#2a5c4e;
+            display:flex;align-items:center;gap:6px;
+            box-shadow:0 2px 0 #9abfa8;transition:all .12s;
+        }
+        .observe-btn:active{transform:translateY(2px);box-shadow:none}
+        .observe-btn .ob-icon{font-size:14px}
+
+        /* ===== 信任 Toast ===== */
+        #trust-toast-area{
+            position:fixed;top:0;left:50%;transform:translateX(-50%);
+            width:100%;max-width:520px;z-index:500;
+            display:flex;flex-direction:column;gap:0;pointer-events:none;
+        }
+        .trust-toast{
+            pointer-events:all;
+            background:linear-gradient(135deg,#1b3329,#111f17);
+            border-bottom:1.5px solid #3d7a5c;
+            overflow:hidden;
+            animation:toastSlide .35s ease;
+        }
+        @keyframes toastSlide{from{opacity:0;transform:translateY(-100%)}to{opacity:1;transform:none}}
+        .toast-stripe{height:2px;background:linear-gradient(90deg,transparent,#5ab38a,transparent)}
+        .toast-body{padding:10px 14px;display:flex;align-items:center;gap:10px}
+        .toast-avatar{
+            width:38px;height:38px;border-radius:50%;
+            border:1.5px solid #5ab38a;background:#162a1f;
+            flex-shrink:0;overflow:hidden;
+            display:flex;align-items:center;justify-content:center;
+        }
+        .toast-avatar svg{width:34px;height:34px}
+        .toast-info{flex:1;min-width:0}
+        .toast-npc-name{font-family:var(--font-title);font-size:12px;color:#7dd4a8;letter-spacing:2px;margin-bottom:2px}
+        .toast-npc-text{font-size:12px;color:#c8e8d8;line-height:1.5}
+        .toast-go{
+            background:#2a6a4a;border:1px solid #5ab38a;color:#b0eccc;
+            padding:6px 12px;font-family:var(--font-title);font-size:12px;
+            letter-spacing:1px;cursor:pointer;flex-shrink:0;
+            border-radius:2px;white-space:nowrap;
+        }
+        .toast-go:active{background:#3a8a5a}
+        .toast-dismiss{
+            background:none;border:none;color:#5a8a6a;
+            font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;
+        }
+
+        /* ===== 陈述档案面板 ===== */
+        .stmt-panel{margin-top:8px}
+        .stmt-panel-title{
+            font-family:var(--font-title);font-size:13px;color:var(--gold);
+            letter-spacing:2px;border-bottom:0.5px solid rgba(184,150,62,.3);
+            padding-bottom:4px;margin-bottom:8px;
+        }
+        .stmt-list{display:flex;flex-direction:column;gap:5px}
+        .stmt-row{
+            display:flex;align-items:flex-start;gap:8px;
+            padding:7px 10px;border-left:2px solid var(--paper-dark);
+            background:rgba(255,255,255,.3);font-size:12.5px;
+        }
+        .stmt-row.done{border-left-color:#5a9a72;background:rgba(42,92,78,.05)}
+        .stmt-dot{
+            width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:2px;
+            display:flex;align-items:center;justify-content:center;font-size:9px;
+        }
+        .stmt-dot.gray{background:var(--paper-dark);color:var(--ink-light)}
+        .stmt-dot.green{background:#5a9a72;color:#fff}
+        .stmt-body{flex:1;color:var(--ink-mid);line-height:1.6}
+        .stmt-npc-tag{
+            font-family:var(--font-title);color:var(--cinnabar);
+            font-size:11px;display:block;margin-bottom:1px;letter-spacing:1px;
+        }
+        .stmt-badge{
+            font-size:9.5px;padding:1px 5px;border-radius:2px;
+            display:inline-block;margin-top:3px;
+        }
+        .stmt-badge.plain{
+            background:rgba(74,63,50,.07);color:var(--ink-light);
+            border:0.5px solid var(--paper-dark);
+        }
+        .stmt-badge.done{
+            background:rgba(42,92,78,.1);color:#3a6b5a;
+            border:0.5px solid rgba(42,92,78,.3);
+        }
+
+        /* ===== 全员公堂模式 ===== */
+        /* 整体覆盖层——接管 .container 的 flex 布局 */
+        #tribunal-layer{
+            display:none;
+            position:absolute;inset:0;z-index:50;
+            flex-direction:column;
+            background:linear-gradient(180deg,#130e09 0%,var(--paper) 18%);
+            overflow:hidden;
+        }
+        #tribunal-layer.active{ display:flex }
+
+        /* 顶部：匾额条 */
+        .tb-header{
+            background:linear-gradient(180deg,#1a110d,var(--wood));
+            padding:6px 14px 5px;
+            border-bottom:2px solid var(--gold);
+            display:flex;align-items:center;justify-content:space-between;
+            flex-shrink:0;
+        }
+        .tb-title{
+            font-family:var(--font-title);font-size:16px;
+            color:var(--gold-pale);letter-spacing:6px;
+        }
+        .tb-close-btn{
+            background:none;border:1px solid rgba(184,150,62,.4);
+            color:var(--gold-pale);font-family:var(--font-title);
+            font-size:12px;letter-spacing:2px;padding:4px 10px;cursor:pointer;
+        }
+        .tb-close-btn:active{background:rgba(184,150,62,.12)}
+
+        /* 头像栏 */
+        .tb-avatars{
+            display:flex;justify-content:space-around;align-items:flex-end;
+            padding:10px 8px 0;
+            flex-shrink:0;position:relative;
+        }
+        .tb-npc{
+            display:flex;flex-direction:column;align-items:center;gap:4px;
+            position:relative;flex:1;
+        }
+        .tb-avatar-wrap{
+            width:52px;height:52px;border-radius:50%;
+            border:2px solid rgba(184,150,62,.35);
+            background:var(--paper-dark);
+            display:flex;align-items:center;justify-content:center;
+            cursor:pointer;transition:border-color .2s, transform .15s;
+            position:relative;overflow:visible;
+            box-shadow:0 3px 10px rgba(0,0,0,.25);
+        }
+        .tb-avatar-wrap svg{ width:46px;height:46px }
+        .tb-avatar-wrap.focused{
+            border-color:var(--gold);
+            box-shadow:0 0 0 3px rgba(184,150,62,.25),0 4px 14px rgba(0,0,0,.4);
+            transform:translateY(-3px);
+        }
+        .tb-avatar-wrap.reacting{
+            border-color:var(--cinnabar);
+            box-shadow:0 0 0 3px rgba(145,41,41,.22);
+            animation:tbPulse .6s ease 2;
+        }
+        .tb-avatar-wrap.calm-react{
+            border-color:var(--jade);
+            box-shadow:0 0 0 3px rgba(58,107,90,.22);
+        }
+        @keyframes tbPulse{
+            0%,100%{transform:translateY(0) scale(1)}
+            50%{transform:translateY(-2px) scale(1.06)}
+        }
+        .tb-name{
+            font-family:var(--font-title);font-size:11px;
+            color:var(--ink-mid);letter-spacing:1px;
+        }
+        .tb-npc.focused .tb-name{ color:var(--gold) }
+
+        /* 气泡弹出框（旁听反应 + 转向按钮） */
+        .tb-bubble{
+            position:absolute;
+            bottom:calc(100% + 10px); /* 在头像上方弹出 */
+            left:50%;transform:translateX(-50%);
+            width:160px;
+            background:linear-gradient(160deg,#faf5ec,var(--paper-warm));
+            border:1.5px solid var(--gold);
+            border-radius:8px;
+            padding:8px 10px;
+            box-shadow:0 6px 20px rgba(0,0,0,.35);
+            z-index:100;
+            pointer-events:none;opacity:0;
+            transition:opacity .2s, transform .2s;
+            transform:translateX(-50%) translateY(6px);
+        }
+        .tb-bubble.visible{
+            opacity:1;pointer-events:all;
+            transform:translateX(-50%) translateY(0);
+        }
+        /* 气泡小三角 */
+        .tb-bubble::after{
+            content:'';position:absolute;
+            top:100%;left:50%;transform:translateX(-50%);
+            border:7px solid transparent;
+            border-top-color:var(--gold);
+        }
+        .tb-bubble::before{
+            content:'';position:absolute;
+            top:100%;left:50%;transform:translateX(-50%);
+            border:6px solid transparent;
+            border-top-color:var(--paper-warm);
+            z-index:1;margin-top:-1px;
+        }
+        .tb-bubble-reaction{
+            font-size:11.5px;color:var(--ink-mid);
+            line-height:1.6;margin-bottom:6px;
+            border-bottom:0.5px solid var(--paper-dark);
+            padding-bottom:5px;
+        }
+        .tb-bubble-reaction .rb-icon{ font-size:12px;margin-right:2px }
+        .tb-redirect-btn{
+            width:100%;padding:5px 0;
+            background:linear-gradient(160deg,var(--wood),var(--wood-mid));
+            color:var(--paper);border:none;
+            font-family:var(--font-title);font-size:12px;letter-spacing:1px;
+            cursor:pointer;border-radius:3px;position:relative;overflow:hidden;
+            display:flex;align-items:center;justify-content:center;gap:4px;
+        }
+        .tb-redirect-btn:active{filter:brightness(.85)}
+        .tb-redirect-btn .tb-countdown{
+            position:absolute;bottom:0;left:0;height:2px;
+            background:var(--gold);transition:width linear;
+        }
+        .tb-redirect-btn.expired{ opacity:.38;pointer-events:none }
+
+        /* 中央对话区 */
+        .tb-dialogue{
+            flex:1;overflow-y:auto;padding:12px 14px;
+            display:flex;flex-direction:column;gap:10px;
+            scroll-behavior:smooth;
+        }
+        .tb-dialogue::-webkit-scrollbar{width:3px}
+        .tb-dialogue::-webkit-scrollbar-thumb{background:var(--gold);border-radius:2px}
+        .tb-speech{
+            background:linear-gradient(180deg,#faf5ec,var(--paper-warm));
+            border:1px solid var(--paper-dark);
+            border-left:3px solid var(--gold);
+            border-radius:0 8px 8px 0;
+            padding:10px 14px;
+            font-size:14px;line-height:1.85;color:var(--ink);
+        }
+        .tb-speech-who{
+            font-family:var(--font-title);font-size:12px;
+            color:var(--cinnabar);letter-spacing:2px;margin-bottom:4px;
+        }
+        .tb-speech-text{ white-space:pre-wrap }
+
+        /* 底部证物选择区 */
+        .tb-bottom{
+            flex-shrink:0;
+            background:linear-gradient(to top,var(--paper-dark),var(--paper));
+            border-top:2px solid rgba(184,150,62,.3);
+            padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));
+            position:relative;
+        }
+        .tb-bottom::before{
+            content:'';position:absolute;top:-1px;left:12%;right:12%;height:1px;
+            background:linear-gradient(90deg,transparent,var(--gold),transparent);
+        }
+        .tb-clue-label{
+            font-family:var(--font-title);font-size:11px;
+            color:var(--ink-light);letter-spacing:2px;margin-bottom:6px;
+        }
+        .tb-clue-grid{
+            display:flex;flex-wrap:wrap;gap:6px;
+        }
+        .tb-clue-btn{
+            padding:6px 12px;
+            background:linear-gradient(160deg,var(--wood),var(--wood-mid));
+            color:var(--paper);border:none;
+            font-family:var(--font-body);font-size:12px;
+            cursor:pointer;border-radius:3px;
+            box-shadow:0 2px 0 #120b07;transition:all .1s;
+        }
+        .tb-clue-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #120b07}
+        .tb-clue-btn.active-clue{
+            background:linear-gradient(160deg,var(--cinnabar),var(--cinnabar-deep));
+            box-shadow:0 2px 0 #3a0e0e;
+        }
+        .tb-end-btn{
+            width:100%;margin-top:8px;padding:10px;
+            background:transparent;border:1px dashed rgba(184,150,62,.4);
+            color:var(--ink-light);font-family:var(--font-title);
+            font-size:14px;letter-spacing:3px;cursor:pointer;
+        }
+        .tb-end-btn:active{background:rgba(184,150,62,.06)}
 
         /* ===== 弹窗通用 ===== */
         .overlay{
@@ -517,6 +971,34 @@
             </svg>
         </div>
 
+        <!-- ⑦ 场景氛围条 -->
+        <div id="atmo-bar"></div>
+
+        <!-- Trust Toast 容器 -->
+        <div id="trust-toast-area"></div>
+
+        <!-- ===== ⑥ 时间轴重建小游戏层 ===== -->
+        <div id="timeline-overlay">
+            <div class="tl-header">
+                <span class="tl-title">重 建 时 间 线</span>
+                <button class="tl-close" onclick="closeTimeline()">返　回</button>
+            </div>
+            <div class="tl-progress">
+                <span id="tl-prog-text">0 / 0</span>
+                <div class="tl-prog-bar"><div class="tl-prog-fill" id="tl-prog-fill" style="width:0%"></div></div>
+                <span id="tl-prog-pct">0%</span>
+            </div>
+            <div id="tl-unlock-zone"></div>
+            <div class="tl-body" id="tl-body">
+                <div class="tl-hint">将下方卡片拖入对应的时间插槽，还原案发当夜的完整经过</div>
+                <div class="tl-track" id="tl-track"></div>
+            </div>
+            <div class="tl-pool" id="tl-pool">
+                <div class="tl-pool-title">待排列的事件卡片</div>
+                <div class="tl-pool-cards" id="tl-pool-cards"></div>
+            </div>
+        </div>
+        
         <!-- 状态栏 -->
         <div id="status-bar" class="status-bar" style="display:none">
             <span id="sb-time">辰时</span>
@@ -525,10 +1007,33 @@
             <span class="sb-sep">｜</span>
             <span id="sb-day">第1日</span>
         </div>
+        <!-- ⑤ 氛围文字栏 -->
+        <div id="scene-bar" class="scene-bar" style="display:none">
+            <span id="sb-scene"></span>
+            <span id="sb-hint" class="sb-hint" style="display:none"></span>
+        </div>
 
         <div id="chat-history"></div>
         <div class="bottom-area" id="controls"></div>
-    </div>
+
+        <!-- ===== 全员公堂层（覆盖主界面）===== -->
+        <div id="tribunal-layer">
+            <!-- 顶部匾额 -->
+            <div class="tb-header">
+                <span class="tb-title">堂　审</span>
+                <button class="tb-close-btn" onclick="closeTribunal()">散　堂</button>
+            </div>
+            <!-- 头像栏 -->
+            <div class="tb-avatars" id="tb-avatars"></div>
+            <!-- 中央对话区 -->
+            <div class="tb-dialogue" id="tb-dialogue"></div>
+            <!-- 底部证物区 -->
+            <div class="tb-bottom">
+                <div class="tb-clue-label">呈　堂　证　物</div>
+                <div class="tb-clue-grid" id="tb-clue-grid"></div>
+                <button class="tb-end-btn" onclick="closeTribunal()">◆ 散堂（消耗 2 时辰）</button>
+            </div>
+        </div>
 
     <script>
         const state = { token: null, uiType: 'text', uiOptions: [], modelId: null, currentNpcId: null };
@@ -625,31 +1130,207 @@
                 const d=await r.json();state.token=d.new_encrypted_state;state.uiType=d.ui_type||'text';state.uiOptions=d.ui_options||[];
                 if(d.bg_image)container.style.backgroundImage=`url('/images/${d.bg_image}')`;
                 if(d.status_info)updateStatusBar(d.status_info);
-                if(d.reply_text)addMsg(d.reply_text,'system',d.sender_name);
-                renderUI();
+                // 信任触发线索 Toast
+                if(d.status_info&&d.status_info.pending_trust_clues){
+                    d.status_info.pending_trust_clues.forEach(c=>showTrustToast(c));
+                }
+                // 后端推送新陈述记录
+                if(d.status_info&&d.status_info.new_statements){
+                    d.status_info.new_statements.forEach(s=>addStatement(s.npc,s.text));
+                }
+                // 后端推送已揭穿陈述
+                if(d.status_info&&d.status_info.confronted_statements){
+                    d.status_info.confronted_statements.forEach(s=>markConfronted(s.npc,s.text));
+                }
+                // ④ NPC 目击动态 feed
+                if(d.status_info&&d.status_info.npc_sighting){
+                    const s=d.status_info.npc_sighting;
+                    const sDiv=document.createElement('div');
+                    sDiv.className='message-row system';
+                    sDiv.innerHTML=`<div style="display:flex;flex-direction:column;gap:2px"><div class="bubble sighting-bubble">👁 ${escapeHtml(s.text)}</div></div>`;
+                    history.appendChild(sDiv);
+                    history.scrollTop=history.scrollHeight;
+                }
+                if(d.reply_text)addMsg(d.reply_text,'system',d.sender_name, _afterType);
+                else _afterType();
+
+                function _afterType(){
+                // 公堂模式：拦截并渲染到公堂层
+                if(d.ui_type==='tribunal_mode'){
+                    tbHandleResponse(d.reply_text||'', d.ui_options||[]);
+                } else if(tbState.active && d.ui_type==='select_npc' && d.ui_options && d.ui_options.every(o=>o.action_type==='TRIBUNAL_EXECUTE')){
+                    // 公堂内「选首问对象」提示 → 在对话区显示提示，不渲染到 controls
+                    const dialogue=document.getElementById('tb-dialogue');
+                    const hint=document.createElement('div');
+                    hint.style.cssText='text-align:center;color:var(--ink-light);font-size:12px;letter-spacing:2px;padding:6px 0;';
+                    hint.textContent='请点击上方头像选择首要质问对象';
+                    dialogue.appendChild(hint);
+                    dialogue.scrollTop=dialogue.scrollHeight;
+                } else if(tbState.active && d.ui_type==='text'){
+                    // 公堂散堂后的普通文字（消耗时间提示）→ 已由 closeTribunal 处理，忽略重复渲染
+                } else {
+                    renderUI();
+                }
+                }
             }catch(e){if(ld.parentNode)history.removeChild(ld);alert("网络连接错误")}
         }
 
-        // ===== 消息渲染 =====
+        // ===== 消息渲染（打字机效果）=====
         function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-        function addMsg(text,type,sender){
-            const div=document.createElement('div');div.className=`message-row ${type}`;
-            let h=escapeHtml(text).replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
-            h=h.replace(/\[img:(.*?)\]/g,'<img src="/images/$1" class="clue-img">');
-            const skip=['系统','调查结果','场景描述','强制剧情','系统阻拦','突发事件','公堂对质'];
-            let ava='',stag='';
-            if(type==='system'&&sender&&!skip.includes(sender)){
-                const svg=NPC_SVG[sender]||'';
-                ava=svg?`<div class="avatar">${svg}</div>`:`<div class="avatar" style="background-image:url('/images/npc_${sender}.png')"></div>`;
-                stag=`<div class="sender-tag">${escapeHtml(sender)}</div>`;
+
+        // 打字机状态
+        let _typewriting = false;
+        let _typeQueue = [];    // 打字完成后的回调队列
+        let _typeAbort = null;  // 当前打字的取消函数
+
+        // 速度分档（ms/字符）
+        function _getTypeSpeed(text, sender){
+            // 用户消息、系统提示：不打字
+            if(!sender) return 0;
+            const instant = ['系统','调查结果','场景描述','系统阻拦','突发事件','调查笔记','案件卷宗'];
+            if(instant.includes(sender)) return 0;
+            // 关键揭秘：慢速
+            if(/【推断|凶器确认|真相|凶手|乌金丝|END|结局/.test(text)) return 55;
+            // 激动情绪：快速（感叹号密集）
+            const bangs = (text.match(/[！!]{1}/g)||[]).length;
+            if(bangs >= 3 || /啊[—！!]|救命|报应|不要/.test(text)) return 18;
+            // 普通NPC对话
+            return 30;
+        }
+
+        function addMsg(text, type, sender, onDone){
+            const div = document.createElement('div');
+            div.className = `message-row ${type}`;
+            let h = escapeHtml(text).replace(/\*\*(.*?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>');
+            h = h.replace(/\[img:(.*?)\]/g,'<img src="/images/$1" class="clue-img">');
+            const skip = ['系统','调查结果','场景描述','强制剧情','系统阻拦','突发事件','公堂对质'];
+            let ava = '', stag = '';
+            if(type === 'system' && sender && !skip.includes(sender)){
+                const svg = NPC_SVG[sender] || '';
+                ava = svg ? `<div class="avatar">${svg}</div>` : `<div class="avatar" style="background-image:url('/images/npc_${sender}.png')"></div>`;
+                stag = `<div class="sender-tag">${escapeHtml(sender)}</div>`;
             }
-            div.innerHTML=`${ava}<div style="display:flex;flex-direction:column;gap:2px">${stag}<div class="bubble">${h}</div></div>`;
-            history.appendChild(div);history.scrollTop=history.scrollHeight;
+
+            const speed = (type === 'user') ? 0 : _getTypeSpeed(text, sender);
+
+            if(speed === 0 || !h.trim()){
+                // 瞬时显示
+                div.innerHTML = `${ava}<div style="display:flex;flex-direction:column;gap:2px">${stag}<div class="bubble">${h}</div></div>`;
+                history.appendChild(div);
+                history.scrollTop = history.scrollHeight;
+                if(onDone) onDone();
+                return;
+            }
+
+            // 打字机模式
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            div.innerHTML = `${ava}<div style="display:flex;flex-direction:column;gap:2px">${stag}</div>`;
+            div.querySelector('div[style]').appendChild(bubble);
+            history.appendChild(div);
+
+            _typewriting = true;
+            // 禁用底部操作区
+            controls.style.pointerEvents = 'none';
+            controls.style.opacity = '0.5';
+
+            // 解析 HTML 为 token 序列（标签整体输出，文字逐字）
+            const tokens = _tokenizeHtml(h);
+            let idx = 0;
+            let accumulated = '';
+            let aborted = false;
+
+            function tick(){
+                if(aborted) return;
+                if(idx >= tokens.length){
+                    _finishTyping(onDone);
+                    return;
+                }
+                const tk = tokens[idx++];
+                accumulated += tk;
+                bubble.innerHTML = accumulated;
+                history.scrollTop = history.scrollHeight;
+
+                // 标签token不延迟
+                if(tk.startsWith('<')){
+                    tick();
+                } else {
+                    // 标点稍微停顿
+                    let delay = speed;
+                    if(/[，。？！、；：…—]/.test(tk)) delay = speed * 2.5;
+                    else if(/[,.?!;:\-]/.test(tk)) delay = speed * 2;
+                    setTimeout(tick, delay);
+                }
+            }
+
+            // 点击气泡跳过打字
+            bubble.style.cursor = 'pointer';
+            const skipHandler = () => {
+                aborted = true;
+                bubble.innerHTML = h;
+                bubble.style.cursor = '';
+                bubble.removeEventListener('click', skipHandler);
+                history.scrollTop = history.scrollHeight;
+                _finishTyping(onDone);
+            };
+            bubble.addEventListener('click', skipHandler);
+            _typeAbort = skipHandler;
+
+            tick();
+        }
+
+        function _finishTyping(onDone){
+            _typewriting = false;
+            _typeAbort = null;
+            controls.style.pointerEvents = '';
+            controls.style.opacity = '';
+            if(onDone) onDone();
+            // 执行排队的回调
+            while(_typeQueue.length){ _typeQueue.shift()(); }
+        }
+
+        // 将 HTML 字符串拆分为 token：标签整体、HTML实体整体、普通字符逐个
+        function _tokenizeHtml(html){
+            const tokens = [];
+            let i = 0;
+            while(i < html.length){
+                if(html[i] === '<'){
+                    // 整个标签
+                    const end = html.indexOf('>', i);
+                    if(end !== -1){
+                        tokens.push(html.substring(i, end + 1));
+                        i = end + 1;
+                    } else {
+                        tokens.push(html[i++]);
+                    }
+                } else if(html[i] === '&'){
+                    // HTML 实体 (&amp; 等)
+                    const semi = html.indexOf(';', i);
+                    if(semi !== -1 && semi - i < 8){
+                        tokens.push(html.substring(i, semi + 1));
+                        i = semi + 1;
+                    } else {
+                        tokens.push(html[i++]);
+                    }
+                } else {
+                    tokens.push(html[i++]);
+                }
+            }
+            return tokens;
         }
 
         // ===== UI 渲染 =====
         function renderUI(){
             controls.innerHTML='';
+            // 公堂：若后端返回 select_clue 且来源是 TRIBUNAL_TOPIC 或 SHOW_TRIBUNAL_MENU
+            // 用 state 里的 uiOptions 判断——如果所有 action 都是 TRIBUNAL_EXECUTE，则是进入公堂后的「选首问对象」提示，不需要再处理（由头像点击驱动）
+            // 如果 action_type 全是 TRIBUNAL_TOPIC，则是「选证物」→ 开启公堂层
+            if(state.uiType==='select_clue' && state.uiOptions.length && state.uiOptions.every(o=>o.action_type==='TRIBUNAL_TOPIC')){
+                openTribunal(state.uiOptions);
+                return;
+            }
+            // tribunal_mode 由 send() 直接处理，此处跳过
+            if(state.uiType==='tribunal_mode') return;
             if(['select_room','select_npc','select_clue'].includes(state.uiType)){
                 const g=document.createElement('div');g.className='card-grid';
                 state.uiOptions.forEach(o=>{const b=document.createElement('div');b.className='card-btn';const img=o.image?`<img src="/images/${o.image}">`:'';b.innerHTML=`${img}<span>${o.label}</span>`;b.onclick=()=>handleAction(o);g.appendChild(b)});
@@ -676,21 +1357,46 @@
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_TALK_MENU'})">${ICONS.talk}盘问众人</button>
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_CONFRONT_MENU'})">${ICONS.confront}出示证据</button>
                     <button class="text-btn" onclick="send({user_input:'系统菜单'})">${ICONS.dossier}查看卷宗</button>
+                    <button class="text-btn" onclick="openTimeline()">${ICO.scroll} 重建时间线</button>
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_TRIBUNAL_MENU'})">${ICONS.tribunal}召集公堂</button>
                     <button class="text-btn red" onclick="send({user_input:'CMD_SHOW_ACCUSE_MENU'})">${ICONS.accuse}指认凶手</button>`;
             }
             else if(state.uiType==='room_view'){
-                const g=document.createElement('div');g.className='card-grid';
-                state.uiOptions.forEach(o=>{if(o.action_type==='EXIT')return;const b=document.createElement('div');b.className='card-btn';b.innerHTML=`<span>${ICO.inspect} ${o.label}</span>`;b.onclick=()=>handleAction(o);g.appendChild(b)});
+                 const g=document.createElement('div');g.className='card-grid';
+                // 普通家具按钮
+                state.uiOptions.forEach(o=>{
+                    if(o.action_type==='EXIT'||o.action_type==='INSPECT_CONDITIONAL')return;
+                    const b=document.createElement('div');b.className='card-btn';
+                    b.innerHTML=`<span>${ICO.inspect} ${o.label}</span>`;
+                    b.onclick=()=>handleAction(o);g.appendChild(b);
+                });
+                // 条件线索按钮（◈ 绿色系）
+                renderCondButtons(g, state.uiOptions);
                 controls.appendChild(g);
                 const ex=state.uiOptions.find(o=>o.action_type==='EXIT');
                 if(ex){const b=document.createElement('button');b.className='text-btn';b.style.marginTop='8px';b.innerHTML=ICO.door+' 退出搜查';b.onclick=()=>handleAction(ex);controls.appendChild(b)}
             }
             else if(state.uiType==='chat_mode'){
+                // 观察类按钮行（OBSERVE_NPC_DETAIL，放输入框上方）
+                const obsOpts=state.uiOptions.filter(o=>o.action_type==='OBSERVE_NPC_DETAIL');
+                if(obsOpts.length){
+                    const obsRow=document.createElement('div');
+                    obsRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px';
+                    obsOpts.forEach(o=>{
+                        const b=document.createElement('button');b.className='observe-btn';
+                        b.innerHTML=`<span class="ob-icon">◈</span>${o.label}`;
+                        b.onclick=()=>handleAction(o);obsRow.appendChild(b);
+                    });
+                    controls.appendChild(obsRow);
+                }
                 const d=document.createElement('div');d.className='chat-input';
                 d.innerHTML=`<input id="chat-in" placeholder="输入问题…" onkeydown="if(event.key==='Enter')sendChat()"><button onclick="sendChat()">发送</button>`;
                 controls.appendChild(d);
-                state.uiOptions.forEach(o=>{const b=document.createElement('button');b.className=o.action_type==='EXIT'?'text-btn red':'text-btn';b.style.marginTop='5px';b.innerText=o.label;b.onclick=()=>handleAction(o);controls.appendChild(b)});
+                state.uiOptions.forEach(o=>{
+                    if(o.action_type==='OBSERVE_NPC_DETAIL')return;
+                    const b=document.createElement('button');b.className=o.action_type==='EXIT'?'text-btn red':'text-btn';
+                    b.style.marginTop='5px';b.innerText=o.label;b.onclick=()=>handleAction(o);controls.appendChild(b);
+                });
             }
             else if(state.uiType==='ending_report'){
                 // 从 reply_text 中解析报告数据
@@ -728,21 +1434,401 @@
             else if(opt.action_type==='TRIBUNAL_SELECT_B')p.user_input=`CMD_TRIBUNAL_SELECT_B:${opt.payload}`;
             else if(opt.action_type==='TRIBUNAL_EXECUTE')p.user_input=`CMD_TRIBUNAL_EXECUTE:${opt.payload}`;
             else if(opt.action_type==='SHOW_TRIBUNAL_MENU')p.user_input='CMD_SHOW_TRIBUNAL_MENU';
+            else if(opt.action_type==='TRIBUNAL_TOPIC')p.user_input=`CMD_TRIBUNAL_TOPIC:${opt.payload}`;
+            else if(opt.action_type==='TRIBUNAL_REDIRECT')p.user_input=`CMD_TRIBUNAL_REDIRECT:${opt.payload}`;
+            else if(opt.action_type==='TRIBUNAL_CLOSE'){send({user_input:'CMD_TRIBUNAL_CLOSE'});closeTribunal();return;}
+            else if(opt.action_type==='INSPECT_CONDITIONAL')p.user_input=`CMD_INSPECT_CONDITIONAL:${opt.payload}`;
+            else if(opt.action_type==='OBSERVE_NPC_DETAIL')p.user_input=`CMD_OBSERVE_NPC_DETAIL:${opt.payload}`;
+            else if(opt.action_type==='ACCEPT_BRIBE')p.user_input='CMD_ACCEPT_BRIBE';
+            else if(opt.action_type==='REJECT_BRIBE')p.user_input='CMD_REJECT_BRIBE';
             else if(opt.action_type==='CANCEL'){state.uiType='text';renderUI();return}
             send(p);
         }
 
         function addCancelBtn(){const b=document.createElement('button');b.className='text-btn ghost';b.innerHTML=ICO.back+' 返回';b.onclick=()=>{state.uiType='text';renderUI()};controls.appendChild(b)}
         window.sendChat=()=>{const v=document.getElementById('chat-in').value;if(v){send({user_input:v,npc_id:state.currentNpcId});document.getElementById('chat-in').value=''}}
+        // ===== 条件线索按钮渲染（room_view 内调用）=====
+        function renderCondButtons(container, options){
+            options.forEach(o=>{
+                if(o.action_type!=='INSPECT_CONDITIONAL'&&o.action_type!=='OBSERVE_NPC_DETAIL')return;
+                const b=document.createElement('div');
+                const dim=o.dim||false;
+                b.className='card-btn cond-clue'+(dim?' dim':'');
+                b.innerHTML=`
+                    <div class="cond-icon">◈</div>
+                    <div class="cond-label">${o.label}</div>
+                    <div class="${dim?'dim-badge':'cond-badge'}">${dim?(o.dim_reason||'条件未满足'):'可触发'}</div>`;
+                if(!dim) b.onclick=()=>handleAction(o);
+                container.appendChild(b);
+            });
+        }
 
+        // ===== Trust Toast 系统 =====
+        // Toast 颜色主题（每个 NPC 一套）
+        const TOAST_THEME={
+            '顾琼':  {bg:'linear-gradient(135deg,#1b3329,#111f17)',border:'#3d7a5c',stripe:'#5ab38a',avatarBg:'#162a1f',avatarBorder:'#5ab38a',nameColor:'#7dd4a8',textColor:'#c8e8d8',btnBg:'#2a6a4a',btnBorder:'#5ab38a',btnColor:'#b0eccc',xColor:'#5a8a6a'},
+            '清虚子':{bg:'linear-gradient(135deg,#1c1d2e,#12131e)',border:'#4a5280',stripe:'#8090d0',avatarBg:'#14152a',avatarBorder:'#8090d0',nameColor:'#a0b0f0',textColor:'#c8cef0',btnBg:'#303560',btnBorder:'#8090d0',btnColor:'#c0ccf8',xColor:'#6070a0'},
+            '韩子敬':{bg:'linear-gradient(135deg,#241c10,#18120a)',border:'#7a5e30',stripe:'#c4962a',avatarBg:'#1c1408',avatarBorder:'#c4962a',nameColor:'#e8c060',textColor:'#ede0c0',btnBg:'#5a4010',btnBorder:'#c4962a',btnColor:'#e8d090',xColor:'#9a7a30'},
+            '赵虎':  {bg:'linear-gradient(135deg,#1c1014,#12080c)',border:'#7a3040',stripe:'#c06070',avatarBg:'#180810',avatarBorder:'#c06070',nameColor:'#f0a0a8',textColor:'#f0d0d4',btnBg:'#5a1828',btnBorder:'#c06070',btnColor:'#f0c0c8',xColor:'#906070'},
+            '李德福':{bg:'linear-gradient(135deg,#1a1c10,#10120a)',border:'#607040',stripe:'#90a860',avatarBg:'#141608',avatarBorder:'#90a860',nameColor:'#c0d890',textColor:'#d8e8c0',btnBg:'#384020',btnBorder:'#90a860',btnColor:'#c8dca0',xColor:'#708050'},
+        };
+        const DEFAULT_THEME=TOAST_THEME['顾琼'];
+
+        function showTrustToast(clue){
+            const area=document.getElementById('trust-toast-area');
+            if(!area)return;
+            const npcName=clue.npc_name||'';
+            const t=TOAST_THEME[npcName]||DEFAULT_THEME;
+            const svg=NPC_SVG[npcName]||'';
+            // 给 SVG 描边换色以匹配主题
+            const tintedSvg=svg.replace(/stroke="#3a2e22"/g,`stroke="${t.avatarBorder}"`).replace(/fill="#3a2e22"/g,`fill="${t.avatarBorder}"`);
+            const toastId='toast-'+Date.now();
+            const div=document.createElement('div');
+            div.className='trust-toast';div.id=toastId;
+            div.style.cssText=`background:${t.bg};border-bottom:1.5px solid ${t.border}`;
+            div.innerHTML=`
+                <div class="toast-stripe" style="background:linear-gradient(90deg,transparent,${t.stripe},transparent)"></div>
+                <div class="toast-body">
+                    <div class="toast-avatar" style="background:${t.avatarBg};border-color:${t.avatarBorder}">
+                        ${tintedSvg}
+                    </div>
+                    <div class="toast-info">
+                        <div class="toast-npc-name" style="color:${t.nameColor}">${escapeHtml(npcName)}</div>
+                        <div class="toast-npc-text" style="color:${t.textColor}">${escapeHtml(clue.hint||npcName+'似乎想和你说些什么……')}</div>
+                    </div>
+                    <button class="toast-go" style="background:${t.btnBg};border-color:${t.btnBorder};color:${t.btnColor}"
+                        onclick="acceptTrustClue('${clue.clue_id}','${toastId}')">前去听听</button>
+                    <button class="toast-dismiss" style="color:${t.xColor}"
+                        onclick="dismissToast('${toastId}')">×</button>
+                </div>`;
+            area.appendChild(div);
+        }
+
+        function dismissToast(id){
+            const el=document.getElementById(id);
+            if(el){el.style.animation='toastSlide .25s ease reverse';setTimeout(()=>el.remove(),240)}
+        }
+
+        function acceptTrustClue(clueId,toastId){
+            dismissToast(toastId);
+            send({user_input:`CMD_ACCEPT_TRUST_CLUE:${clueId}`});
+        }
+
+        // ===== 陈述记录（客户端维护）=====
+        // 结构：{npc, text, confronted}
+        const stmtLog=[];
+
+        function addStatement(npc, text){
+            // 避免重复记录完全相同的陈述
+            if(stmtLog.some(s=>s.npc===npc&&s.text===text))return;
+            stmtLog.push({npc,text,confronted:false});
+        }
+
+        function markConfronted(npc, text){
+            const s=stmtLog.find(s=>s.npc===npc&&s.text===text);
+            if(s)s.confronted=true;
+        }
+
+        function renderStmtPanel(){
+            if(!stmtLog.length)return'';
+            const rows=stmtLog.map(s=>`
+                <div class="stmt-row${s.confronted?' done':''}">
+                    <div class="stmt-dot ${s.confronted?'green':'gray'}">${s.confronted?'✓':'○'}</div>
+                    <div class="stmt-body">
+                        <span class="stmt-npc-tag">${escapeHtml(s.npc)}</span>
+                        「${escapeHtml(s.text)}」
+                        <span class="stmt-badge ${s.confronted?'done':'plain'}">${s.confronted?'已揭穿':'已记录'}</span>
+                    </div>
+                </div>`).join('');
+            return`<div class="stmt-panel">
+                <div class="stmt-panel-title">陈述档案</div>
+                <div class="stmt-list">${rows}</div>
+            </div>`;
+        }
+
+        // ===== 全员公堂系统 =====
+        // NPC 顺序（固定显示顺序）
+        const TRIBUNAL_NPCS = ['李德福','赵虎','顾琼','韩子敬','清虚子'];
+        // NPC id 映射
+        const TRIBUNAL_NPC_IDS = {
+            '李德福':'npc_lidefu','赵虎':'npc_zhaohu',
+            '顾琼':'npc_guqiong','韩子敬':'npc_hanzijing','清虚子':'npc_qingxuzi'
+        };
+        // 当前公堂状态
+        const tbState = {
+            active: false,
+            focusNpc: null,       // 当前被质问的 NPC 名
+            activeClue: null,     // 当前呈堂证物 payload
+            countdownTimers: [],  // 转向倒计时 timer id
+        };
+
+        /* 开启公堂层 */
+        function openTribunal(clueOptions){
+            const layer = document.getElementById('tribunal-layer');
+            layer.classList.add('active');
+            tbState.active = true;
+
+            // 渲染头像栏
+            _tbRenderAvatars();
+            // 渲染证物按钮
+            _tbRenderClues(clueOptions);
+            // 清空对话区
+            document.getElementById('tb-dialogue').innerHTML = '';
+        }
+
+        /* 关闭公堂层 */
+        function closeTribunal(){
+            const layer = document.getElementById('tribunal-layer');
+            layer.classList.remove('active');
+            tbState.active = false;
+            tbState.focusNpc = null;
+            tbState.activeClue = null;
+            _tbClearCountdowns();
+            // 关闭时通知后端（消耗时间）—— 只在已经开始审问后才发
+            // 实际的散堂 CMD 由底部"散堂"按钮或 TRIBUNAL_CLOSE action 发送
+            renderUI();
+        }
+
+        /* 渲染头像栏 */
+        function _tbRenderAvatars(){
+            const bar = document.getElementById('tb-avatars');
+            bar.innerHTML = '';
+            TRIBUNAL_NPCS.forEach(name => {
+                const npcId = TRIBUNAL_NPC_IDS[name];
+                const svg = NPC_SVG[name] || '';
+                const wrap = document.createElement('div');
+                wrap.className = 'tb-npc';
+                wrap.id = `tb-npc-${npcId}`;
+                wrap.innerHTML = `
+                    <div class="tb-avatar-wrap" id="tb-av-${npcId}" onclick="_tbClickAvatar('${npcId}','${name}')">
+                        ${svg}
+                        <div class="tb-bubble" id="tb-bub-${npcId}"></div>
+                    </div>
+                    <div class="tb-name">${name}</div>`;
+                bar.appendChild(wrap);
+            });
+        }
+
+        /* 渲染底部证物按钮 */
+        function _tbRenderClues(clueOptions){
+            const grid = document.getElementById('tb-clue-grid');
+            grid.innerHTML = '';
+            clueOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'tb-clue-btn';
+                btn.textContent = opt.label.replace(/^[▪\s]+/,'');
+                btn.dataset.payload = opt.payload;
+                btn.onclick = () => _tbSelectClue(opt, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        /* 选择证物 → 询问首要质问对象（点头像） */
+        function _tbSelectClue(opt, btnEl){
+            // 高亮当前证物
+            document.querySelectorAll('.tb-clue-btn').forEach(b=>b.classList.remove('active-clue'));
+            btnEl.classList.add('active-clue');
+            tbState.activeClue = opt.payload;
+            // 发送 TRIBUNAL_TOPIC
+            send({user_input:`CMD_TRIBUNAL_TOPIC:${opt.payload}`});
+        }
+
+        /* 点击头像 → 发起质问（须已选证物） */
+        function _tbClickAvatar(npcId, npcName){
+            if(!tbState.activeClue) return;
+            tbState.focusNpc = npcName;
+            _tbClearCountdowns();
+            // 所有头像去掉高亮
+            TRIBUNAL_NPCS.forEach(n=>{
+                const id = TRIBUNAL_NPC_IDS[n];
+                document.getElementById(`tb-av-${id}`)?.classList.remove('focused','reacting','calm-react');
+                document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
+            });
+            // 被质问者高亮
+            document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
+            const npcEl = document.getElementById(`tb-npc-${npcId}`);
+            if(npcEl) npcEl.querySelector('.tb-name').style.color='var(--gold)';
+            // 发送
+            send({user_input:`CMD_TRIBUNAL_EXECUTE:${npcId}`});
+        }
+
+        /* 后端返回 tribunal_mode 时调用此函数渲染 */
+        function tbHandleResponse(replyText, uiOptions){
+            if(!tbState.active) return;
+            _tbClearCountdowns();
+
+            // 解析焦点回复 vs 旁听者反应（约定："\n\n旁听者反应：\n" 分割）
+            const splitMark = '旁听者反应：';
+            const splitIdx = replyText.indexOf(splitMark);
+            const focusPart = splitIdx > -1 ? replyText.slice(0, splitIdx).trim() : replyText.trim();
+            const reactionPart = splitIdx > -1 ? replyText.slice(splitIdx + splitMark.length).trim() : '';
+
+            // 渲染焦点发言到对话区
+            const dialogue = document.getElementById('tb-dialogue');
+            const speech = document.createElement('div');
+            speech.className = 'tb-speech';
+            // 去掉 **名字：** 前缀，单独显示
+            const nameMatch = focusPart.match(/^\*\*(.+?)：\*\*\s*/);
+            const speakerName = nameMatch ? nameMatch[1] : (tbState.focusNpc || '');
+            const speechText = nameMatch ? focusPart.slice(nameMatch[0].length) : focusPart;
+            speech.innerHTML = `<div class="tb-speech-who">${escapeHtml(speakerName)}</div>
+                <div class="tb-speech-text">${escapeHtml(speechText).replace(/\n/g,'<br>')}</div>`;
+            dialogue.appendChild(speech);
+            dialogue.scrollTop = dialogue.scrollHeight;
+
+            // 解析旁听者反应行
+            const reactionLines = reactionPart.split('\n').map(l=>l.trim()).filter(Boolean);
+            // 格式：【名字】反应文字
+            const reactions = reactionLines.map(line=>{
+                const m = line.match(/【(.+?)】(.+)/);
+                return m ? {name:m[1], text:m[2]} : null;
+            }).filter(Boolean);
+
+            // 取出 REDIRECT options（带 suspicion_shift 信号的转向按钮）
+            const redirectOpts = uiOptions.filter(o=>o.action_type==='TRIBUNAL_REDIRECT');
+
+            // 对每个旁听者：更新头像状态 + 填充气泡
+            const COUNTDOWN_MS = 5000;
+            reactions.forEach(r => {
+                const id = TRIBUNAL_NPC_IDS[r.name];
+                if(!id) return;
+                const av = document.getElementById(`tb-av-${id}`);
+                const bub = document.getElementById(`tb-bub-${id}`);
+                if(!av||!bub) return;
+
+                // 判断 suspicion_shift（从对应的 redirect option 取）
+                const rOpt = redirectOpts.find(o=>o.payload===id);
+                const shift = rOpt ? (rOpt.label.startsWith('⚠') ? 'increase' : rOpt.label.startsWith('✓') ? 'decrease' : 'none') : 'none';
+
+                av.classList.remove('reacting','calm-react');
+                if(shift==='increase') av.classList.add('reacting');
+                else if(shift==='decrease') av.classList.add('calm-react');
+
+                // 气泡内容
+                const icon = shift==='increase'?'⚠':shift==='decrease'?'✓':'○';
+                const iconColor = shift==='increase'?'var(--cinnabar)':shift==='decrease'?'var(--jade)':'var(--ink-light)';
+
+                let bubHtml = `<div class="tb-bubble-reaction">
+                    <span class="rb-icon" style="color:${iconColor}">${icon}</span>${escapeHtml(r.text)}
+                </div>`;
+
+                // 如果该人有转向按钮，加上倒计时按钮
+                if(rOpt){
+                    bubHtml += `<button class="tb-redirect-btn" id="tb-rbtn-${id}"
+                        onclick="_tbRedirect('${id}','${r.name}',this)">
+                        转向追问
+                        <div class="tb-countdown" id="tb-cd-${id}" style="width:100%"></div>
+                    </button>`;
+                }
+                bub.innerHTML = bubHtml;
+                bub.classList.add('visible');
+
+                // 启动5秒倒计时
+                if(rOpt){
+                    requestAnimationFrame(()=>{
+                        requestAnimationFrame(()=>{
+                            const cd = document.getElementById(`tb-cd-${id}`);
+                            if(cd){
+                                cd.style.transition=`width ${COUNTDOWN_MS}ms linear`;
+                                cd.style.width='0%';
+                            }
+                        });
+                    });
+                    const timer = setTimeout(()=>{
+                        const rbtn = document.getElementById(`tb-rbtn-${id}`);
+                        if(rbtn) rbtn.classList.add('expired');
+                    }, COUNTDOWN_MS);
+                    tbState.countdownTimers.push(timer);
+                }
+            });
+
+            // 无旁听反应时，隐藏所有气泡
+            if(!reactions.length){
+                TRIBUNAL_NPCS.forEach(n=>{
+                    const id=TRIBUNAL_NPC_IDS[n];
+                    document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
+                });
+            }
+        }
+
+        /* 转向追问 */
+        function _tbRedirect(npcId, npcName, btnEl){
+            // 立即锁定所有转向按钮
+            document.querySelectorAll('.tb-redirect-btn').forEach(b=>b.classList.add('expired'));
+            _tbClearCountdowns();
+            tbState.focusNpc = npcName;
+            // 切换高亮
+            TRIBUNAL_NPCS.forEach(n=>{
+                const id=TRIBUNAL_NPC_IDS[n];
+                document.getElementById(`tb-av-${id}`)?.classList.remove('focused','reacting','calm-react');
+                document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
+            });
+            document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
+            send({user_input:`CMD_TRIBUNAL_REDIRECT:${npcId}`});
+        }
+
+        /* 清除所有倒计时 */
+        function _tbClearCountdowns(){
+            tbState.countdownTimers.forEach(t=>clearTimeout(t));
+            tbState.countdownTimers=[];
+        }
+
+        /* 点击头像（已选证物时发起质问） */
+        function _tbClickAvatar(npcId, npcName){
+            if(!tbState.activeClue){
+                // 未选证物：仅切换气泡显示（若有）
+                const bub = document.getElementById(`tb-bub-${npcId}`);
+                if(bub && bub.innerHTML){
+                    const isVisible = bub.classList.contains('visible');
+                    document.querySelectorAll('.tb-bubble').forEach(b=>b.classList.remove('visible'));
+                    if(!isVisible) bub.classList.add('visible');
+                }
+                return;
+            }
+            // 已选证物 → 发起质问
+            tbState.focusNpc = npcName;
+            _tbClearCountdowns();
+            TRIBUNAL_NPCS.forEach(n=>{
+                const id=TRIBUNAL_NPC_IDS[n];
+                document.getElementById(`tb-av-${id}`)?.classList.remove('focused','reacting','calm-react');
+                document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
+            });
+            document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
+            send({user_input:`CMD_TRIBUNAL_EXECUTE:${npcId}`});
+        }
         // ===== 状态栏更新 =====
         function updateStatusBar(info){
             const bar=document.getElementById('status-bar');
-            if(!info){bar.style.display='none';return}
+            const sceneBar=document.getElementById('scene-bar');
+            const atmoBar=document.getElementById('atmo-bar');
+            if(!info){bar.style.display='none';if(sceneBar)sceneBar.style.display='none';if(atmoBar)atmoBar.classList.remove('show');return}
             bar.style.display='flex';
             document.getElementById('sb-time').textContent=info.time||'';
             document.getElementById('sb-energy').textContent=`精力 ${info.energy}/${info.max_energy}`;
             document.getElementById('sb-day').textContent=`第${info.day}日`;
+
+            // ⑤ 氛围文字 + 推断提示
+            if(sceneBar){
+                if(info.scene_text){
+                    sceneBar.style.display='flex';
+                    document.getElementById('sb-scene').textContent=info.scene_text;
+                    const hintEl=document.getElementById('sb-hint');
+                    if(info.hint){hintEl.textContent='💡 '+info.hint;hintEl.style.display=''}
+                    else{hintEl.style.display='none'}
+                } else { sceneBar.style.display='none'; }
+            }
+
+            // ⑦ 场景氛围条
+            if(atmoBar){
+                if(info.room_atmosphere){
+                    atmoBar.textContent=info.room_atmosphere;
+                    atmoBar.classList.add('show');
+                } else { atmoBar.classList.remove('show'); }
+            }
+
+            // 缓存时间轴数据供小游戏使用
+            if(info.timeline_unlocked) tlGameState.serverData=info.timeline_unlocked;
+            if(info.timeline_total) tlGameState.totalSlots=info.timeline_total;
         }
         // ===== 案件卷宗系统 =====
         function showReportOverlay(data){
@@ -785,7 +1871,7 @@
 
             card.innerHTML=`
                 <div class="rc-header" style="background:linear-gradient(160deg,${headerColor},#1a110d)">
-                    <div class="rc-seal">大 唐 密 卫 司</div>
+                    <div class="rc-seal">回 马 驿 之 变</div>
                     <div class="rc-title">案 件 卷 宗</div>
                     <div class="rc-ending">〔 ${escapeHtml(data.ending_title)} 〕</div>
                 </div>
@@ -869,7 +1955,346 @@
                 alert('截图功能暂不可用，请手动截屏保存');
             }
         }
+        // ===== ⑥ 时间轴重建小游戏 =====
+        const tlGameState = {
+            serverData: [],
+            totalSlots: 12,
+            placed: {},
+            dragCard: null,
+            touchCard: null,
+        };
+        const TL_TIME_LABELS = ["酉时前","戌时","戌时","戌时","亥时","子时","丑时初","丑时","丑时","丑时末","寅时前","寅时"];
+        // 每个插槽放入正确卡片时的人物独白（≤20字，第一人称，不透露身份）
+        const TL_MONOLOGUES = [
+            {who:"张三",  line:"二十三年了，够长了。"},              // 0: 做法算命
+            {who:"张三",  line:"终于来了。我等得太久了。"},          // 1: 众人抵达
+            {who:"李德福",line:"雕虫小技。逃不出我的手心。"},        // 2: 覆托立盏
+            {who:"玩家",  line:"夜太静了。不对劲。"},                // 3: 部署守夜
+            {who:"韩子敬",line:"写得出又如何。不敢认，不配认。"},    // 4: 焚烧反诗
+            {who:"赵虎",  line:"他什么都不知道。最好永远别知道。"},  // 5: 交班
+            {who:"赵虎",  line:"对不住了。"},                        // 6: 宽大脚印
+            {who:"张三",  line:"握住。这是我最后能做的事。"},        // 7: 遇害
+            {who:"赵虎",  line:"腿……不听使唤了。快。快。"},         // 8: 翻墙返回
+            {who:"顾琼",  line:"我磨了三年的刀，白磨了。"},         // 9: 细窄脚印
+            {who:"韩子敬",line:"有人死了。与我无关。与我无关。"},    // 10: 埋诗稿
+            {who:"清虚子",line:"这下跳进黄河也洗不清了。"},         // 11: 发现尸体
+        ];
+        const ZHANG_SAN_MONOLOGUE =
+            "我知道他们会来。二十三年了，每一天早上醒来，我都在等这一天。\n\n" +
+            "佛龛前的那枚指套，是我留给后人的证据——如果有人愿意为一个驿卒伸冤的话。\n\n" +
+            "可我知道不会有的。谁会在乎一个改了名字的老太监呢？\n\n" +
+            "我只是不想跪着死。所以我在佛前跪下，把那个掩埋了二十三年的谎言，最后默念了一遍。\n\n" +
+            "然后我闭上了眼睛。";
+
+        function openTimeline(){
+            document.getElementById('timeline-overlay').classList.add('active');
+            _tlRender();
+        }
+        function closeTimeline(){
+            document.getElementById('timeline-overlay').classList.remove('active');
+        }
+
+        function _tlRender(){
+            const track = document.getElementById('tl-track');
+            const poolCards = document.getElementById('tl-pool-cards');
+            const unlockZone = document.getElementById('tl-unlock-zone');
+            track.innerHTML = ''; poolCards.innerHTML = ''; unlockZone.innerHTML = '';
+
+            const data = tlGameState.serverData;
+            const total = tlGameState.totalSlots;
+
+            // ── 轨道插槽 ──
+            let prevTime = '';
+            for(let i = 0; i < total; i++){
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = 'position:relative;margin-bottom:6px';
+
+                // 时间标签（同一时辰只显示一次）
+                const tLabel = TL_TIME_LABELS[i] || '';
+                if(tLabel !== prevTime){
+                    const label = document.createElement('div');
+                    label.className = 'tl-time-label';
+                    label.textContent = tLabel;
+                    label.style.position = 'relative';
+                    label.style.left = '-60px';
+                    label.style.width = '52px';
+                    label.style.textAlign = 'right';
+                    label.style.marginBottom = '4px';
+                    track.appendChild(label);
+                    prevTime = tLabel;
+                }
+
+                const slot = document.createElement('div');
+                slot.className = 'tl-slot' + (tlGameState.placed[i] ? ' filled' : '');
+                slot.dataset.idx = i;
+
+                if(tlGameState.placed[i]){
+                    const card = tlGameState.placed[i];
+                    const c = _tlMakeCard(card, false);
+                    // 双击/长按退回卡片池
+                    c.ondblclick = () => { delete tlGameState.placed[i]; _tlRender(); };
+                    // 正确位置标记 + 独白
+                    if(card.idx === i){
+                        c.style.borderLeftColor = 'var(--jade)';
+                        const mono = TL_MONOLOGUES[i];
+                        if(mono){
+                            const voice = document.createElement('div');
+                            voice.className = 'tl-voice';
+                            voice.innerHTML = '<div class="tl-voice-who">' + escapeHtml(mono.who) + '</div>「' + escapeHtml(mono.line) + '」';
+                            slot.appendChild(c);
+                            slot.appendChild(voice);
+                        } else {
+                            slot.appendChild(c);
+                        }
+                    } else {
+                        slot.appendChild(c);
+                    }
+                } else {
+                    // 未解锁的条目显示锁定占位
+                    const unlocked = data.find(d => d.idx === i);
+                    if(!unlocked){
+                        slot.innerHTML = '<span class="tl-slot-placeholder" style="opacity:0.4">🔒 尚未发现</span>';
+                        slot.style.opacity = '0.5';
+                    } else {
+                        slot.innerHTML = '<span class="tl-slot-placeholder">拖入事件</span>';
+                    }
+                    // 拖放接收
+                    slot.ondragover = e => { e.preventDefault(); slot.classList.add('drag-over'); };
+                    slot.ondragleave = () => slot.classList.remove('drag-over');
+                    slot.ondrop = e => {
+                        e.preventDefault(); slot.classList.remove('drag-over');
+                        const cardIdx = parseInt(e.dataTransfer.getData('text/plain'));
+                        const card = data.find(d => d.idx === cardIdx);
+                        if(card){ tlGameState.placed[i] = card; _tlRender(); }
+                    };
+                    // 触摸放置
+                    slot.onclick = () => {
+                        if(tlGameState.touchCard){
+                            tlGameState.placed[i] = tlGameState.touchCard;
+                            tlGameState.touchCard = null;
+                            _tlRender();
+                        }
+                    };
+                }
+                wrapper.appendChild(slot);
+                track.appendChild(wrapper);
+            }
+
+            // ── 卡片池（未放置的已解锁卡片）──
+            const placedIdxs = new Set(Object.values(tlGameState.placed).map(c => c.idx));
+            let poolCount = 0;
+            // 随机排列池中卡片
+            const poolData = data.filter(c => !placedIdxs.has(c.idx));
+            poolData.sort(() => Math.random() - 0.5);
+            poolData.forEach(card => {
+                const c = _tlMakeCard(card, true);
+                poolCards.appendChild(c);
+                poolCount++;
+            });
+
+            if(poolCount === 0 && data.length > 0){
+                poolCards.innerHTML = '<div style="text-align:center;font-size:11px;color:var(--ink-light);padding:8px">所有已解锁卡片均已放置</div>';
+            }
+            if(data.length === 0){
+                poolCards.innerHTML = '<div style="text-align:center;font-size:11px;color:var(--ink-light);padding:8px">尚未解锁任何事件卡片，继续调查收集线索</div>';
+            }
+
+            // ── 进度计算 ──
+            let correct = 0;
+            Object.entries(tlGameState.placed).forEach(([slotIdx, card]) => {
+                if(parseInt(slotIdx) === card.idx) correct++;
+            });
+            const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+            document.getElementById('tl-prog-text').textContent = `${correct} / ${total}`;
+            document.getElementById('tl-prog-pct').textContent = pct + '%';
+            document.getElementById('tl-prog-fill').style.width = pct + '%';
+
+            // ── 解锁奖励 ──
+            if(pct >= 90){
+                unlockZone.innerHTML =
+                    '<div class="tl-unlock">90% 达成 —— 解锁张三最后的内心独白</div>' +
+                    '<div class="tl-monologue">' + escapeHtml(ZHANG_SAN_MONOLOGUE).replace(/\n/g,'<br>') + '</div>';
+            } else if(pct >= 70){
+                unlockZone.innerHTML = '<div class="tl-unlock">70% 达成 —— 指认时解锁「高级指控」选项</div>';
+            }
+        }
+
+        function _tlMakeCard(card, draggable){
+            const c = document.createElement('div');
+            c.className = 'tl-card' + (card.secret ? ' secret' : '');
+            c.innerHTML =
+                '<div class="tl-card-time">' + escapeHtml(card.time) + '</div>' +
+                '<div class="tl-card-text">' + escapeHtml(card.text) + '</div>';
+            if(draggable){
+                c.draggable = true;
+                c.ondragstart = e => {
+                    e.dataTransfer.setData('text/plain', card.idx.toString());
+                    tlGameState.dragCard = card;
+                    c.style.opacity = '0.5';
+                };
+                c.ondragend = () => { c.style.opacity = '1'; };
+                // 移动端：点击选中，再点击插槽放置
+                c.onclick = e => {
+                    e.stopPropagation();
+                    // 取消之前的选中
+                    document.querySelectorAll('.tl-card.selected').forEach(el => el.classList.remove('selected'));
+                    if(tlGameState.touchCard && tlGameState.touchCard.idx === card.idx){
+                        tlGameState.touchCard = null;
+                    } else {
+                        tlGameState.touchCard = card;
+                        c.classList.add('selected');
+                    }
+                };
+            }
+            return c;
+        }
+
         init();
     </script>
+
+    <!-- ===== PC 左侧装饰 ===== -->
+    <div class="pc-side left" id="pc-left">
+        <svg viewBox="0 0 300 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="lsky" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#140e08"/>
+                    <stop offset="100%" stop-color="#0d0a08"/>
+                </linearGradient>
+                <linearGradient id="lfade" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stop-color="#0d0a08"/>
+                    <stop offset="70%" stop-color="transparent"/>
+                </linearGradient>
+                <filter id="linkmtn">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.03 0.05" numOctaves="4" seed="3"/>
+                    <feDisplacementMap in="SourceGraphic" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+                </filter>
+            </defs>
+            <!-- 天空底色 -->
+            <rect width="300" height="1000" fill="url(#lsky)"/>
+            <!-- 远山 三层 -->
+            <path d="M0 600 Q40 480 90 520 Q140 420 200 460 Q250 390 280 420 L300 400 L300 1000 L0 1000Z"
+                  fill="#1c1409" opacity=".9" filter="url(#linkmtn)"/>
+            <path d="M0 680 Q60 600 130 630 Q190 570 250 600 L300 590 L300 1000 L0 1000Z"
+                  fill="#251a0d" opacity=".85"/>
+            <path d="M0 780 Q80 730 160 750 Q220 715 300 730 L300 1000 L0 1000Z"
+                  fill="#2e1f10" opacity=".95"/>
+            <!-- 前景坡地 -->
+            <path d="M0 880 Q60 855 130 862 Q200 845 300 855 L300 1000 L0 1000Z"
+                  fill="#1e1208"/>
+            <!-- 松树剪影 左 -->
+            <g opacity=".22" fill="#b8963e">
+                <path d="M30 760 L36 710 L42 760Z"/>
+                <path d="M25 760 L36 695 L47 760Z" opacity=".45"/>
+                <rect x="35" y="760" width="2.5" height="30" fill="#2e1f10"/>
+            </g>
+            <!-- 松树剪影 右 -->
+            <g opacity=".18" fill="#b8963e">
+                <path d="M180 650 L185 610 L190 650Z"/>
+                <path d="M176 650 L185 598 L194 650Z" opacity=".4"/>
+                <rect x="184" y="650" width="2" height="22" fill="#2e1f10"/>
+            </g>
+            <!-- 月亮 -->
+            <circle cx="230" cy="160" r="38" fill="none" stroke="#b8963e" stroke-width="0.8" opacity=".18"/>
+            <circle cx="230" cy="160" r="32" fill="#b8963e" opacity=".03"/>
+            <circle cx="222" cy="152" r="6" fill="#0d0a08" opacity=".6"/>
+            <!-- 星点 -->
+            <g fill="#b8963e" opacity=".14">
+                <circle cx="60"  cy="100" r="1.2"/>
+                <circle cx="100" cy="70"  r="0.8"/>
+                <circle cx="150" cy="90"  r="1"/>
+                <circle cx="40"  cy="160" r="0.7"/>
+                <circle cx="190" cy="55"  r="0.9"/>
+                <circle cx="270" cy="120" r="0.7"/>
+            </g>
+            <!-- 飞鸟 -->
+            <g fill="none" stroke="#b8963e" stroke-width="0.7" opacity=".16">
+                <path d="M80 230 q5-7 10 0 q-5-3-10 0"/>
+                <path d="M105 218 q4-5 7 0 q-4-2-7 0"/>
+                <path d="M55 250 q3-4 6 0 q-3-1.5-6 0"/>
+            </g>
+            <!-- 雨丝 -->
+            <g stroke="#b8963e" stroke-width="0.35" opacity=".06">
+                <line x1="70"  y1="0" x2="50"  y2="500"/>
+                <line x1="130" y1="0" x2="110" y2="500"/>
+                <line x1="200" y1="0" x2="180" y2="500"/>
+                <line x1="260" y1="0" x2="240" y2="500"/>
+            </g>
+            <!-- 金线边框 -->
+            <line x1="290" y1="40" x2="290" y2="960" stroke="#b8963e" stroke-width="0.6" opacity=".38"/>
+            <circle cx="290" cy="40"  r="3.5" fill="none" stroke="#b8963e" stroke-width="0.6" opacity=".32"/>
+            <circle cx="290" cy="960" r="3.5" fill="none" stroke="#b8963e" stroke-width="0.6" opacity=".32"/>
+            <!-- 淡出遮罩 -->
+            <rect width="300" height="1000" fill="url(#lfade)"/>
+        </svg>
+        <!-- 诗句竖排 -->
+        <div class="pc-verse near">暴雨如注路断绝</div>
+        <div class="pc-verse far">一夜驿中藏杀机</div>
+    </div>
+
+    <!-- ===== PC 右侧装饰 ===== -->
+    <div class="pc-side right" id="pc-right">
+        <svg viewBox="0 0 300 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" style="transform:scaleX(-1)">
+            <defs>
+                <linearGradient id="rsky" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#140e08"/>
+                    <stop offset="100%" stop-color="#0d0a08"/>
+                </linearGradient>
+                <linearGradient id="rfade" x1="0" x2="1" y1="0" y2="0">
+                    <stop offset="0%" stop-color="#0d0a08"/>
+                    <stop offset="70%" stop-color="transparent"/>
+                </linearGradient>
+            </defs>
+            <rect width="300" height="1000" fill="url(#rsky)"/>
+            <path d="M0 580 Q50 460 100 500 Q160 400 220 445 Q260 390 300 415 L300 1000 L0 1000Z"
+                  fill="#1c1409" opacity=".9"/>
+            <path d="M0 670 Q70 595 140 622 Q200 565 270 592 L300 582 L300 1000 L0 1000Z"
+                  fill="#251a0d" opacity=".85"/>
+            <path d="M0 775 Q90 728 175 745 Q235 712 300 725 L300 1000 L0 1000Z"
+                  fill="#2e1f10" opacity=".95"/>
+            <path d="M0 878 Q70 852 145 858 Q210 842 300 852 L300 1000 L0 1000Z"
+                  fill="#1e1208"/>
+            <!-- 松树 -->
+            <g opacity=".2" fill="#b8963e">
+                <path d="M220 745 L226 700 L232 745Z"/>
+                <path d="M215 745 L226 685 L237 745Z" opacity=".4"/>
+                <rect x="225" y="745" width="2.5" height="28" fill="#2e1f10"/>
+            </g>
+            <g opacity=".17" fill="#b8963e">
+                <path d="M70 640 L75 605 L80 640Z"/>
+                <path d="M66 640 L75 592" opacity=".35" stroke="#b8963e" stroke-width="9" fill="none"/>
+                <rect x="74" y="640" width="2" height="20" fill="#2e1f10"/>
+            </g>
+            <!-- 月 -->
+            <circle cx="220" cy="180" r="35" fill="none" stroke="#b8963e" stroke-width="0.8" opacity=".16"/>
+            <circle cx="220" cy="180" r="29" fill="#b8963e" opacity=".03"/>
+            <!-- 星 -->
+            <g fill="#b8963e" opacity=".13">
+                <circle cx="55"  cy="90"  r="1"/>
+                <circle cx="110" cy="65"  r="0.8"/>
+                <circle cx="165" cy="85"  r="1.1"/>
+                <circle cx="280" cy="140" r="0.8"/>
+                <circle cx="30"  cy="175" r="0.7"/>
+            </g>
+            <!-- 飞鸟 -->
+            <g fill="none" stroke="#b8963e" stroke-width="0.7" opacity=".14">
+                <path d="M120 200 q5-7 10 0 q-5-3-10 0"/>
+                <path d="M148 188 q4-5 7 0 q-4-2-7 0"/>
+            </g>
+            <!-- 雨丝 -->
+            <g stroke="#b8963e" stroke-width="0.35" opacity=".06">
+                <line x1="50"  y1="0" x2="30"  y2="500"/>
+                <line x1="120" y1="0" x2="100" y2="500"/>
+                <line x1="190" y1="0" x2="170" y2="500"/>
+                <line x1="255" y1="0" x2="235" y2="500"/>
+            </g>
+            <!-- 金线 -->
+            <line x1="290" y1="40" x2="290" y2="960" stroke="#b8963e" stroke-width="0.6" opacity=".38"/>
+            <circle cx="290" cy="40"  r="3.5" fill="none" stroke="#b8963e" stroke-width="0.6" opacity=".32"/>
+            <circle cx="290" cy="960" r="3.5" fill="none" stroke="#b8963e" stroke-width="0.6" opacity=".32"/>
+            <rect width="300" height="1000" fill="url(#rfade)"/>
+        </svg>
+        <div class="pc-verse near">六人困死地谁是鬼</div>
+        <div class="pc-verse far">回马驿中无一善</div>
+    </div>
 </body>
 </html>

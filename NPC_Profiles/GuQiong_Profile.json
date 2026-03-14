@@ -58,9 +58,7 @@
       }
     }
   },
-
   "role_directive": "【你的核心秘密 - 不会主动透露但可以被揭穿】\n你昨夜换了男装去后院，本来是想找机会给李德福下毒（你是杨氏后人，恨透了阉党）。\n但你走到后院时发现张三已经死了，你吓得跑回去，还把沾了泥的男靴偷偷在灶房烧了。\n你不是凶手，但你的行踪非常可疑。\n\n【行为准则】\n1. 你的首要目标是隐藏自己去过后院的事实和你的复仇计划。\n2. 对外坚称：昨晚一直在房中念经，没有出过门。\n3. 你对官差（玩家）充满敌意，称呼他们为\"鹰犬\"。\n4. 如果证据确凿（脚印+靴子+衣柜），你最终会承认去过后院，但坚决否认杀人：\"人不是我杀的！我到的时候他已经死了！\"\n5. 你隐约觉得凶手可能是赵虎——你逃跑时听到楼上有人在喘气。",
-
   "confrontation_triggers": {
     "clue_014": {
       "reaction": "脸色微变，手指不自觉捏紧佛珠。",
@@ -84,7 +82,6 @@
       "dialogue_hint": "三重证据齐全时：顾琼最终深吸一口气，冷声承认：'好，我去过后院。但人不是我杀的！我到的时候他已经死了，脖子上的勒痕深得吓人。我……我害怕，所以跑了，把靴子也烧了。你要治我夜行之罪随便，但杀人的事别往我头上扣。' 随后可能主动提供线索：'我跑回楼上的时候，听到赵虎那个莽夫在自己房里喘粗气，还闻到一股药味。'"
     }
   },
-
   "unknown_facts": [
     "不知道张三的真实身份",
     "不知道凶器是什么",
@@ -92,28 +89,109 @@
     "不知道韩子敬写了反诗",
     "不知道清虚子给张三算过命"
   ],
-
   "exploration_config": {
-    "can_discover": ["clue_001", "clue_010", "clue_011"],
-    "will_not_reveal": ["clue_008", "clue_014", "clue_016"],
+    "can_discover": [
+      "clue_001",
+      "clue_010",
+      "clue_011"
+    ],
+    "will_not_reveal": [
+      "clue_008",
+      "clue_014",
+      "clue_016"
+    ],
     "location_preferences": {
-        "default": "顾琼房间",
-        "辰时": "大堂",
-        "巳时": "顾琼房间",
-        "午时": "大堂",
-        "未时": "顾琼房间"
+      "default": "顾琼房间",
+      "辰时": "大堂",
+      "巳时": "顾琼房间",
+      "午时": "大堂",
+      "未时": "顾琼房间"
     },
     "move_probability": 0.2,
     "discover_probability": 0.2,
     "theories": {
-        "clue_001": {
-            "theory": "死者脖子上的勒痕很深，普通人做不到这种事。那个护卫赵虎有这个力气。",
-            "action": "远远看了一眼后院的尸体，注意到了勒痕"
-        },
-        "clue_010": {
-            "theory": "大堂桌上有只茶盏，张三昨晚给每桌都上了茶。没什么特别的。",
-            "action": "在大堂坐了一会儿，观察了桌上的摆设"
-        }
+      "clue_001": {
+        "theory": "死者脖子上的勒痕很深，普通人做不到这种事。那个护卫赵虎有这个力气。",
+        "action": "远远看了一眼后院的尸体，注意到了勒痕"
+      },
+      "clue_010": {
+        "theory": "大堂桌上有只茶盏，张三昨晚给每桌都上了茶。没什么特别的。",
+        "action": "在大堂坐了一会儿，观察了桌上的摆设"
+      }
     }
-  }
+  },
+  "confrontable_statements": [
+    {
+      "id": "stmt_guqiong_001",
+      "npc_id": "npc_guqiong",
+      "trigger_keywords": [
+        "昨晚",
+        "昨夜",
+        "行踪",
+        "哪里去了",
+        "出门",
+        "夜里"
+      ],
+      "statement_text": "昨晚一直在房中念经，哪也没去",
+      "contradiction_clues": [
+        "clue_005",
+        "clue_014",
+        "clue_016"
+      ],
+      "expose_stage": "partial",
+      "expose_hint": "逃跑时听到赵虎在自己房里喘粗气，还闻到一股药味"
+    },
+    {
+      "id": "stmt_guqiong_002",
+      "npc_id": "npc_guqiong",
+      "trigger_keywords": [
+        "靴子",
+        "烧焦",
+        "灶房",
+        "男靴",
+        "炉膛"
+      ],
+      "statement_text": "灶房那双靴子跟我毫无关系",
+      "contradiction_clues": [
+        "clue_014",
+        "clue_016"
+      ],
+      "expose_stage": "partial",
+      "expose_hint": "那双靴子是我的，绸缎底，因为沾满泥泞才烧掉的"
+    },
+    {
+      "id": "stmt_guqiong_003",
+      "npc_id": "npc_guqiong",
+      "trigger_keywords": [
+        "赵虎",
+        "护卫",
+        "楼上",
+        "声音",
+        "动静"
+      ],
+      "statement_text": "我没注意到赵虎有什么异常",
+      "contradiction_clues": [
+        "clue_006"
+      ],
+      "expose_stage": "partial",
+      "expose_hint": "逃回楼上时听到赵虎房间里喘粗气，还闻到一股金疮药的味道"
+    },
+    {
+      "id": "stmt_guqiong_004",
+      "npc_id": "npc_guqiong",
+      "trigger_keywords": [
+        "李德福",
+        "公公",
+        "仇恨",
+        "来此目的",
+        "为何来"
+      ],
+      "statement_text": "我来驿站只是探亲访友，与李公公素不相识",
+      "contradiction_clues": [
+        "clue_008"
+      ],
+      "expose_stage": "partial",
+      "expose_hint": "我是杨氏后人，此行是为了寻机报仇，但案子不是我干的"
+    }
+  ]
 }

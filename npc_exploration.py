@@ -68,6 +68,34 @@ def run_npc_exploration(global_state: Dict, npc_list: List, time_cycles: List,
                 # 没有匹配的推断模板，用通用描述
                 activities[npc_id]["last_action"] = f"似乎在四处查看"
 
+        # ---- 步骤 4：生成可观测动态描述（供前端 sighting feed）----
+        npc_name = npc["name"]
+        npc_loc = d_state["npc_locations"].get(npc_id, "某处")
+        _IDLE_SIGHTINGS = [
+            f"匆匆从{npc_loc}方向走来，神色慌张",
+            f"在{npc_loc}附近来回踱步，欲言又止",
+            f"低着头快步经过，似乎不想被人注意",
+            f"站在{npc_loc}门口张望了一会儿，又缩了回去",
+        ]
+        # 如果有 last_action 就用，否则随机生成一个idle描述
+        if not activities[npc_id].get("last_action"):
+            if random.random() < 0.3:
+                activities[npc_id]["last_action"] = random.choice(_IDLE_SIGHTINGS)
+
+        # ---- 步骤 5：低信任 NPC 散布谣言 ----
+        trust_val = d_state.get("npc_trust", {}).get(npc_id, 50)
+        if trust_val < 25:
+            low_trust_rumors = config.get("low_trust_rumors", [])
+            if low_trust_rumors:
+                activities[npc_id]["last_action"] = random.choice(low_trust_rumors)
+            elif random.random() < 0.3:
+                _RUMOR_TEMPLATES = [
+                    f"在角落和别人窃窃私语，似乎在说你的坏话",
+                    f"冷笑着看你一眼，故意挡住了某个方向",
+                    f"和旁人嘀咕了几句，对方看向你的眼神变了",
+                ]
+                activities[npc_id]["last_action"] = random.choice(_RUMOR_TEMPLATES)
+
 
 def _match_best_theory(discovered: List[str], theories: Dict) -> Dict:
     """

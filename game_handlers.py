@@ -4,6 +4,15 @@ from typing import Dict, List
 
 # import from main
 from npc_prompt_builder import build_npc_system_prompt
+from recall_system import handle_recall
+from conditional_clues import (
+    get_available_conditional_clues,
+    try_trigger_conditional_clue,
+    get_trust_triggered_clues,
+    collect_trust_clue,
+    register_trust_clue_triggered,
+    CONDITIONAL_CLUE_DB,
+)
 
 _ctx = {}  # shared info container
 
@@ -20,12 +29,33 @@ TRUST_RULES = {
     "talked_nicely": +5,           # 友好对话一轮
     "showed_relevant_clue": +8,    # 出示与该 NPC 无关的线索（表示坦诚）
     "tribunal_vindicated": +15,    # 公堂对质中该 NPC 被证明清白
+    "accepted_bribe": +20,         # 接受行贿（信任暴涨但评分受损）
     
     # 负面行为（减信任）
     "accused_wrongly": -20,        # 对该 NPC 错误指控
     "confronted_aggressively": -5, # 出示该 NPC 的隐藏证据（翻他房间）
     "tribunal_accused": -10,       # 在公堂上作为被指控方
     "searched_their_room": -8,     # 搜查了该 NPC 的房间
+    "caught_searching": -15,       # 搜查时被房主撞见
+    "rejected_bribe": -10,         # 拒绝行贿
+}
+
+# ── 房主试探台词（信任 25-70 时房主在场，允许进入但增加难度）──
+OWNER_PROBE_LINES = {
+    "npc_lidefu":   "李德福眯着眼盯着你，不动声色地挡在了行李前面。",
+    "npc_zhaohu":   "赵虎冷冷地看了你一眼，双手抱在胸前，贴墙站着。",
+    "npc_guqiong":  "顾琼转过身去，用背挡住了梳妆台的方向。",
+    "npc_hanzijing":"韩子敬手忙脚乱地把桌上的东西往书堆底下塞。",
+    "npc_qingxuzi": "清虚子嘿嘿一笑：「官爷随便看，贫道的东西都干干净净~」",
+}
+
+# ── 房主阻碍台词（信任 <25 时房主在场，完全封锁）──
+OWNER_BLOCK_LINES = {
+    "npc_lidefu":   "李德福拍案而起：「放肆！谁许你进咱家的房？滚出去！」",
+    "npc_zhaohu":   "赵虎一把将门推上，铁塔般挡在门口，眼神如刀。",
+    "npc_guqiong":  "顾琼冷哼一声：「你这鹰犬若敢踏入一步，休怪我不客气。」",
+    "npc_hanzijing":"韩子敬吓得扑到门前：「官……官爷不要进来！小生什么都没有！」",
+    "npc_qingxuzi": "清虚子挡在门前，脸色一变：「贫道屋里有法器结界，外人不可入内！」",
 }
 
 def adjust_trust(d_state, npc_id, rule_key):
@@ -84,6 +114,10 @@ def _compute_game_stats(current_state):
         score += 15
     elif day == 2 and time_idx <= 6:
         score += 8
+
+    # 行贿惩罚
+    if d.get("bribe_accepted"):
+        score = max(0, score - 15)
 
     if score >= 90:
         rank, rank_title = "S", "神断青天"
@@ -459,12 +493,48 @@ async def handle_confront(user_input, request, current_state, model_id):
         if confront_clue_id not in npc_confront_list:
             npc_confront_list.append(confront_clue_id)
 
-        confront_user_message = (
-            f"【对质】玩家将证物【{clue_name}】拍在桌上，质问你：\n"
-            f"证物详情：{clue_desc}\n"
-            f"请根据你的 confrontation_triggers 中关于 {confront_clue_id} 的指引来回应。"
-            f"如果没有对应的trigger，请根据你的角色性格和认知自然回应。"
-        )
+        # ── 揭穿逻辑：检测当前线索能否揭穿已记录的 NPC 陈述 ──
+        all_stmts = current_state["dynamic_state"].get("npc_statements", {}).get(target_npc_id, [])
+        expose_info = None
+        confronted_statements = []
+        for stmt in all_stmts:
+            if stmt.get("confronted"):
+                continue
+            needed = set(stmt.get("contradiction_clues", []))
+            held = set(current_state["dynamic_state"]["inventory"]["clues_collected"])
+            # AND 逻辑：玩家必须持有所有矛盾线索才能揭穿
+            if needed and needed.issubset(held):
+                stmt["confronted"] = True
+                expose_info = stmt
+                confronted_statements.append({"npc": target_npc_id, "text": stmt["text"]})
+                break  # 每次对质最多揭穿一条陈述
+
+        # 根据揭穿结果构建对质消息
+        if expose_info:
+            stage = expose_info.get("expose_stage", "deny")
+            stage_labels = {
+                "deny":    "强硬否认（死不承认，转移话题，反指控玩家）",
+                "partial": "部分承认（承认行为事实，但否认最严重的指控）",
+                "collapse": "完全崩溃（彻底坦白，情绪失控，求饶或哭泣）",
+            }
+            stage_desc = stage_labels.get(stage, stage_labels["deny"])
+            hint_text = expose_info.get("expose_hint", "")
+            confront_user_message = (
+                f"【揭穿对质】玩家将证物【{clue_name}】拍在桌上，直指你的陈述矛盾：\n"
+                f"你曾声称「{expose_info['text']}」，但这份证据揭穿了你的谎言。\n"
+                f"证物详情：{clue_desc}\n"
+                f"请按【{stage_desc}】路径回应。"
+                + (f"\n（承认后可透露：{hint_text}）" if hint_text else "")
+            )
+            # 把已揭穿陈述挂在 result 上，main.py 放入 status_info 通知前端
+            result["confronted_statements"] = confronted_statements
+        else:
+            confront_user_message = (
+                f"【对质】玩家将证物【{clue_name}】拍在桌上，质问你：\n"
+                f"证物详情：{clue_desc}\n"
+                f"请根据你的 confrontation_triggers 中关于 {confront_clue_id} 的指引来回应。"
+                f"如果没有对应的trigger，请根据你的角色性格和认知自然回应。"
+            )
 
         result["ui_type"] = "chat_mode"
         result["ui_options"].append(UIAction(label="▸ 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
@@ -533,37 +603,81 @@ async def handle_search(user_input, request, current_state, model_id):
 
             d_state = current_state["dynamic_state"]
             NPC_LIST = _get("NPC_LIST")
+            TIME_CYCLES = _get("TIME_CYCLES")
             owner_id = room_data.get("owner")
+            owner_present = False
             if owner_id:
                 npc_locs = d_state.get('npc_locations', {})
                 if npc_locs.get(owner_id) == target_room:
+                    owner_present = True
                     owner_name = next((n["name"] for n in NPC_LIST if n["id"] == owner_id), "主人")
-                    # 信任度 >= 70 时 NPC 允许进入
                     trust = d_state.get("npc_trust", {}).get(owner_id, 50)
+
+                    # ── 信任三档判定 ──
                     if trust >= 70:
+                        # 高信任：放行
                         result["reply"] = f"{owner_name}看了你一眼，点点头让开了路。\n（信任度足够，允许进入搜查）\n\n"
-                    else:
+                    elif trust < 25:
+                        # 低信任：完全封锁
+                        block_line = OWNER_BLOCK_LINES.get(owner_id,
+                            f"{owner_name}怒目圆睁，挡在门口不让你进入。")
                         GameResponse = _get("GameResponse")
                         result["early_return"] = GameResponse(
-                            reply_text=f"【无法进入】\n\n{owner_name}正在房内，你无法搜查。",
+                            reply_text=f"【被拦住了】\n\n{block_line}",
                             sender_name="系统阻拦",
                             new_encrypted_state=encrypt_state(current_state),
                             ui_type="text"
                         )
                         result["done"] = True
                         return result
+                    else:
+                        # 中间信任 (25-70)：试探——允许进入，但搜查难度 +1
+                        probe_line = OWNER_PROBE_LINES.get(owner_id,
+                            f"{owner_name}正在房内，用警惕的目光审视着你。")
+                        result["reply"] = f"⚠ {probe_line}\n（{owner_name}在旁监视，搜查难度提升）\n\n"
+                        # 标记该房间的搜查惩罚
+                        penalty = d_state.setdefault("search_penalty", {})
+                        penalty[target_room] = 1
 
             current_state['dynamic_state']['current_location'] = target_room
-            # 搜查 NPC 房间，信任度下降
             if owner_id:
                 adjust_trust(current_state["dynamic_state"], owner_id, "searched_their_room")
+
+            current_time = TIME_CYCLES[d_state["time_idx"]]
 
             result["sender"] = "场景描述"
             result["reply"] += f"你进入了【{target_room}】。"
             result["ui_type"] = "room_view"
+
+            # 普通家具按钮
             for furniture in room_data["furniture_list"]:
-                result["ui_options"].append(UIAction(label=f"▸ 检查{furniture}", action_type="INSPECT", payload=f"{target_room}:{furniture}"))
-            result["ui_options"].append(UIAction(label="▸ 退出搜查 ", action_type="EXIT", payload="SEARCH"))
+                result["ui_options"].append(UIAction(
+                    label=f"▸ 检查{furniture}",
+                    action_type="INSPECT",
+                    payload=f"{target_room}:{furniture}"
+                ))
+
+            # ── 条件线索按钮注入 ──
+            objective_clues_db = _get("objective_clues_db")
+            cond_clues = get_available_conditional_clues(
+                d_state, target_room, current_time, context="search"
+            )
+            for cc in cond_clues:
+                # 光线不足时按钮标签加提示，但仍显示
+                label = f"◈ {cc['button_text']}"
+                if not cc["light_ok"]:
+                    label += "（光线不足）"
+                result["ui_options"].append(UIAction(
+                    label=label,
+                    action_type="INSPECT_CONDITIONAL",
+                    payload=f"{target_room}:{cc['clue_id']}"
+                ))
+
+            result["ui_options"].append(UIAction(
+                label="▸ 退出搜查 ",
+                action_type="EXIT",
+                payload="SEARCH"
+            ))
             d_state["room_inspect_count"] = 0
         except IndexError:
             result["reply"] = "指令错误。"
@@ -599,6 +713,9 @@ async def handle_search(user_input, request, current_state, model_id):
                 clue = objective_clues_db.get(clue_id)
                 if clue:
                     difficulty = clue.get("search_difficulty", 1)
+                    # ── 信任试探惩罚：房主在场监视时搜查更难 ──
+                    penalty = d_state.get("search_penalty", {}).get(room_name, 0)
+                    difficulty = difficulty + penalty
                     
                     # 记录搜查次数
                     search_counts = d_state.setdefault("search_counts", {})
@@ -611,6 +728,12 @@ async def handle_search(user_input, request, current_state, model_id):
                         result["reply"] += f"你在【{furniture_name}】处发现了：\n\n▪ **{clue['name']}**\n{clue['description']}"
                         if clue['id'] not in d_state["inventory"]["clues_collected"]:
                             d_state["inventory"]["clues_collected"].append(clue['id'])
+                            # ── 推断检查 ──
+                            from inference_engine import check_new_inferences, format_inference_message
+                            new_infs = check_new_inferences(d_state)
+                            if new_infs:
+                                inf_texts = [format_inference_message(i) for i in new_infs]
+                                result["reply"] += "\n\n" + "\n\n".join(inf_texts)
                     else:
                         # 还没找到，给提示
                         hints = {
@@ -628,7 +751,71 @@ async def handle_search(user_input, request, current_state, model_id):
         except ValueError:
             result["reply"] = "指令错误。"
         result["done"] = True
-    
+
+    # ── 条件线索触发 ──
+    elif user_input.startswith("CMD_INSPECT_CONDITIONAL"):
+        try:
+            _, room_name, cond_clue_id = user_input.split(":", 2)
+            d_state = current_state["dynamic_state"]
+            TIME_CYCLES = _get("TIME_CYCLES")
+            objective_clues_db = _get("objective_clues_db")
+            ROOM_DB = _get("ROOM_DB")
+            current_time = TIME_CYCLES[d_state["time_idx"]]
+
+            success, text, added_clue_id = try_trigger_conditional_clue(
+                clue_id=cond_clue_id,
+                d_state=d_state,
+                current_location=room_name,
+                current_time=current_time,
+                objective_clues_db=objective_clues_db
+            )
+
+            result["sender"] = "调查结果"
+            result["ui_type"] = "room_view"
+
+            # 重建房间按钮
+            room_data = ROOM_DB.get(room_name, {})
+            for furniture in room_data.get("furniture_list", []):
+                result["ui_options"].append(UIAction(
+                    label=f"▸ 检查{furniture}",
+                    action_type="INSPECT",
+                    payload=f"{room_name}:{furniture}"
+                ))
+            # 刷新剩余条件线索按钮
+            cond_clues = get_available_conditional_clues(
+                d_state, room_name, current_time, context="search"
+            )
+            for cc in cond_clues:
+                label = f"◈ {cc['button_text']}"
+                if not cc["light_ok"]:
+                    label += "（光线不足）"
+                result["ui_options"].append(UIAction(
+                    label=label,
+                    action_type="INSPECT_CONDITIONAL",
+                    payload=f"{room_name}:{cc['clue_id']}"
+                ))
+            result["ui_options"].append(UIAction(
+                label="▸ 退出搜查",
+                action_type="EXIT",
+                payload="SEARCH"
+            ))
+
+            if success:
+                clue_name = objective_clues_db.get(added_clue_id, {}).get("name", added_clue_id)
+                result["reply"] = text + f"\n\n**▪ 新线索入档：{clue_name}**"
+                # 成功才计入搜查计数 / 推进时间
+                d_state["room_inspect_count"] = d_state.get("room_inspect_count", 0) + 1
+                if d_state["room_inspect_count"] % 2 == 0:
+                    advance_time_func = _get("advance_time")
+                    advance_time_func(current_state)
+            else:
+                # 失败（黑暗/时间不对）：反馈文本，不消耗行动点
+                result["reply"] = text
+
+        except ValueError:
+            result["reply"] = "指令错误。"
+        result["done"] = True
+
     return result
 
 
@@ -660,38 +847,181 @@ async def handle_talk(user_input, request, current_state, model_id):
     # NPC 自由对话（request.npc_id 有值时）
     elif request.npc_id:
         result["ui_type"] = "chat_mode"
-        result["ui_options"].append(UIAction(label="▸ 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
-        collected_ids = current_state["dynamic_state"]["inventory"]["clues_collected"]
-        if collected_ids:
-            result["ui_options"].append(UIAction(label="» 出示证据对质", action_type="CONFRONT_SELECT_NPC", payload=request.npc_id))
+        d_state = current_state["dynamic_state"]
+        current_time = TIME_CYCLES[d_state["time_idx"]]
+        npc_id = request.npc_id
 
-        npc_profile = load_npc_profile(request.npc_id)
-       
+        result["ui_options"].append(UIAction(label="▸ 结束对话 (消耗1行动点)", action_type="EXIT", payload="TALK"))
+        collected_ids = d_state["inventory"]["clues_collected"]
+        if collected_ids:
+            result["ui_options"].append(UIAction(label="» 出示证据对质", action_type="CONFRONT_SELECT_NPC", payload=npc_id))
+
+        # ── 对话中条件线索按钮（如：注意李德福的手）──
+        talk_context = f"talk_with_npc:{npc_id}"
+        cond_clues_talk = get_available_conditional_clues(
+            d_state,
+            current_location=d_state.get("current_location", "大堂"),
+            current_time=current_time,
+            context=talk_context
+        )
+        for cc in cond_clues_talk:
+            result["ui_options"].append(UIAction(
+                label=f"◈ {cc['button_text']}",
+                action_type="OBSERVE_NPC_DETAIL",
+                payload=f"{npc_id}:{cc['clue_id']}"
+            ))
+
+        npc_profile = load_npc_profile(npc_id)
+
         if npc_profile:
             result["sender"] = npc_profile.get("static_profile", {}).get("name", "神秘人")
-            npc_loc = current_state['dynamic_state'].get('npc_locations', {}).get(request.npc_id, "未知")
-            npc_trust = current_state["dynamic_state"].get("npc_trust", {})
-            npc_activities = current_state["dynamic_state"].get("npc_activities", {})
+            npc_loc = d_state.get("npc_locations", {}).get(npc_id, "未知")
+            npc_trust = d_state.get("npc_trust", {})
+            npc_activities = d_state.get("npc_activities", {})
             system_prompt = build_npc_system_prompt(
-                npc_id=request.npc_id, npc_profile=npc_profile,
-                current_time=TIME_CYCLES[current_state['dynamic_state']['time_idx']],
+                npc_id=npc_id, npc_profile=npc_profile,
+                current_time=current_time,
                 npc_location=npc_loc,
-                player_clues=current_state["dynamic_state"]["inventory"]["clues_collected"],
+                player_clues=collected_ids,
                 clues_db=objective_clues_db,
                 npc_activities=npc_activities,
                 npc_trust=npc_trust
             )
-            npc_history = get_npc_history(current_state, request.npc_id)
+            npc_history = get_npc_history(current_state, npc_id)
             messages = build_llm_messages(system_prompt, npc_history, user_input)
             result["reply"] = await call_llm(system_prompt, messages, model_id)
-            save_npc_history(current_state, request.npc_id, user_input, result["reply"])
+            save_npc_history(current_state, npc_id, user_input, result["reply"])
+
+            # ── 陈述提取：检测本轮对话是否触发了可证伪陈述 ──
+            confrontable_stmts = npc_profile.get("confrontable_statements", [])
+            new_statements = []
+            user_input_lower = user_input.lower()
+            reply_lower = result["reply"].lower()
+            for stmt in confrontable_stmts:
+                stmt_id = stmt["id"]
+                # 避免重复记录已触发过的陈述
+                already = d_state.setdefault("npc_statements", {}).get(npc_id, [])
+                if any(s["id"] == stmt_id for s in already):
+                    continue
+                # 检测触发关键词（玩家输入或 NPC 回复中包含任意一个关键词即触发）
+                keywords = stmt.get("trigger_keywords", [])
+                if any(kw in user_input_lower or kw in reply_lower for kw in keywords):
+                    entry = {
+                        "id": stmt_id,
+                        "text": stmt["statement_text"],
+                        "contradiction_clues": stmt.get("contradiction_clues", []),
+                        "expose_stage": stmt.get("expose_stage", "deny"),
+                        "expose_hint": stmt.get("expose_hint", ""),
+                        "confronted": False,
+                    }
+                    d_state["npc_statements"].setdefault(npc_id, []).append(entry)
+                    new_statements.append({"npc": result["sender"], "text": stmt["statement_text"]})
+
+            # 把新陈述挂在 result 上，main.py 会将其放入 status_info
+            if new_statements:
+                result["new_statements"] = new_statements
+
+            # ── 信任双向博弈：对话中的三档行为 ──
+            trust_val = d_state.get("npc_trust", {}).get(npc_id, 50)
+
+            # 高信任（≥70）：NPC 主动提供线索提示
+            if trust_val >= 70:
+                act_data = d_state.get("npc_activities", {}).get(npc_id, {})
+                if act_data.get("theory"):
+                    sender_name = result["sender"]
+                    result["reply"] += (
+                        f"\n\n💡 {sender_name}压低声音凑近你："
+                        f"「{act_data['theory']}」"
+                    )
+
+            # 低信任（<25）：NPC 散布谣言 / 敌意干扰
+            elif trust_val < 25:
+                sender_name = result["sender"]
+                _LOW_TRUST_REACTIONS = {
+                    "npc_lidefu":   "「咱家觉得你这个密卫……办事不太牢靠啊。」他意味深长地看了赵虎一眼。",
+                    "npc_zhaohu":   "赵虎冷冷地瞥了你一眼，手不自觉地摸向腰间佩刀。",
+                    "npc_guqiong":  "顾琼别过脸去：「跟鹰犬说话，脏了我的嘴。」她不愿再多说一个字。",
+                    "npc_hanzijing":"韩子敬吞吞吐吐：「小生……小生什么都不知道……」说完缩进角落。",
+                    "npc_qingxuzi": "清虚子嘿嘿冷笑：「官爷要问就问吧，反正贫道说什么你都不信。」",
+                }
+                hostility = _LOW_TRUST_REACTIONS.get(npc_id, f"{sender_name}显然不想和你多说。")
+                result["reply"] += f"\n\n⚠ {hostility}"
+
+            # 中间信任（25-50）且是李德福：触发行贿抉择（仅一次）
+            if npc_id == "npc_lidefu" and 25 <= trust_val <= 50:
+                bribe_key = "lidefu_bribe_offered"
+                if not d_state.get(bribe_key):
+                    d_state[bribe_key] = True
+                    result["reply"] += (
+                        "\n\n李德福忽然压低声音：「密卫大人，查案辛苦了。"
+                        "咱家这里有些银两……不成敬意。你看这案子，"
+                        "就不必太……较真了吧？」"
+                    )
+                    result["ui_options"].append(UIAction(
+                        label="◇ 收下银两（获取信任，但……）",
+                        action_type="ACCEPT_BRIBE", payload="lidefu"
+                    ))
+                    result["ui_options"].append(UIAction(
+                        label="◆ 严词拒绝",
+                        action_type="REJECT_BRIBE", payload="lidefu"
+                    ))
+
         else:
             result["reply"] = "找不到档案"
-        
-        # 记录当前对话对象，供 CMD_EXIT:TALK 时加信任度
-        current_state["dynamic_state"]["last_talk_npc"] = request.npc_id
+
+        current_state["dynamic_state"]["last_talk_npc"] = npc_id
         result["done"] = True
-    
+
+    # ── 对话中细节观察（触发对话型条件线索）──
+    elif user_input.startswith("CMD_OBSERVE_NPC_DETAIL"):
+        try:
+            _, npc_id, cond_clue_id = user_input.split(":", 2)
+            d_state = current_state["dynamic_state"]
+            current_time = TIME_CYCLES[d_state["time_idx"]]
+            objective_clues_db = _get("objective_clues_db")
+            current_location = d_state.get("current_location", "大堂")
+
+            success, text, added_clue_id = try_trigger_conditional_clue(
+                clue_id=cond_clue_id,
+                d_state=d_state,
+                current_location=current_location,
+                current_time=current_time,
+                objective_clues_db=objective_clues_db
+            )
+
+            result["ui_type"] = "chat_mode"
+            result["sender"] = "观察"
+            result["ui_options"].append(UIAction(
+                label="▸ 结束对话 (消耗1行动点)",
+                action_type="EXIT", payload="TALK"
+            ))
+            if d_state["inventory"]["clues_collected"]:
+                result["ui_options"].append(UIAction(
+                    label="» 出示证据对质",
+                    action_type="CONFRONT_SELECT_NPC", payload=npc_id
+                ))
+
+            # 刷新剩余观察按钮
+            talk_context = f"talk_with_npc:{npc_id}"
+            for cc in get_available_conditional_clues(
+                d_state, current_location, current_time, context=talk_context
+            ):
+                result["ui_options"].append(UIAction(
+                    label=f"◈ {cc['button_text']}",
+                    action_type="OBSERVE_NPC_DETAIL",
+                    payload=f"{npc_id}:{cc['clue_id']}"
+                ))
+
+            if success:
+                clue_name = objective_clues_db.get(added_clue_id, {}).get("name", added_clue_id)
+                result["reply"] = text + f"\n\n**▪ 新线索入档：{clue_name}**"
+            else:
+                result["reply"] = text
+
+        except ValueError:
+            result["reply"] = "指令错误。"
+        result["done"] = True
+
     return result
 
 
@@ -699,184 +1029,240 @@ async def handle_talk(user_input, request, current_state, model_id):
 # 公堂对质系统 (tribunal)
 # ------------------------------------------
 async def handle_tribunal(user_input, request, current_state, model_id):
-    """处理: CMD_SHOW_TRIBUNAL_MENU, CMD_TRIBUNAL_SELECT_A, 
-             CMD_TRIBUNAL_SELECT_B, CMD_TRIBUNAL_TOPIC, CMD_TRIBUNAL_EXECUTE"""
-    
+    """处理全员公堂系统:
+       CMD_SHOW_TRIBUNAL_MENU  → 选呈堂证物
+       CMD_TRIBUNAL_TOPIC:clue_id → 选首要质问对象
+       CMD_TRIBUNAL_EXECUTE:npc_id → 执行全员公堂（LLM生成焦点回应+旁听者反应）
+       CMD_TRIBUNAL_REDIRECT:npc_id → 5秒内转向追问另一人（复用EXECUTE路径）
+       CMD_TRIBUNAL_CLOSE → 结束公堂，消耗时间
+       （旧指令 CMD_TRIBUNAL_SELECT_A/B 保留兼容，不再使用）
+    """
     UIAction = _get("UIAction")
     NPC_LIST = _get("NPC_LIST")
     objective_clues_db = _get("objective_clues_db")
     TIME_CYCLES = _get("TIME_CYCLES")
     call_llm = _get("call_llm")
     load_npc_profile = _get("load_npc_profile")
-    
-    result = {"reply": "", "sender": "系统", "ui_type": "text", 
-            "ui_options": [], "bg_img": None, "done": False}
+    advance_time_func = _get("advance_time")
+
+    result = {"reply": "", "sender": "公堂", "ui_type": "text",
+              "ui_options": [], "bg_img": None, "done": False}
     d_state = current_state["dynamic_state"]
-    
     MAX_TRIBUNALS = 3
-    
-    # --- 公堂菜单 ---
+
+    # ── 公堂菜单：选呈堂证物 ──────────────────────────────────────────────
     if user_input == "CMD_SHOW_TRIBUNAL_MENU":
         used = d_state.get("tribunal_count", 0)
         if used >= MAX_TRIBUNALS:
             result["reply"] = '李德福不耐烦地挥手："够了够了，咱家不是来看你唱戏的！"'
             result["done"] = True
             return result
-        
-        result["reply"] = (
-            f"◆ **召集公堂** (已用 {used}/{MAX_TRIBUNALS} 次)\n\n"
-            f"你可以把两个嫌疑人叫到大堂当面对质。\n"
-            f"※ 这会消耗大量时间（跳过2个时辰）\n\n"
-            f"请选择第一个对质对象："
-        )
-        result["ui_type"] = "select_npc"
-        for npc in NPC_LIST:
-            result["ui_options"].append(UIAction(
-                label=f"» {npc['name']}", 
-                action_type="TRIBUNAL_SELECT_A", 
-                payload=npc["id"]
-            ))
-        result["ui_options"].append(UIAction(
-            label="‹ 取消", action_type="CANCEL", payload="MAIN"
-        ))
-        result["done"] = True
-    
-    # --- 选第一个人 ---
-    elif user_input.startswith("CMD_TRIBUNAL_SELECT_A"):
-        npc_a_id = user_input.split(":", 1)[1]
-        d_state["temp_tribunal_a"] = npc_a_id
-        npc_a_name = next((n["name"] for n in NPC_LIST if n["id"] == npc_a_id), "未知")
-        
-        result["reply"] = f"你选择了【{npc_a_name}】。\n请选择第二个对质对象："
-        result["ui_type"] = "select_npc"
-        for npc in NPC_LIST:
-            if npc["id"] != npc_a_id:
-                result["ui_options"].append(UIAction(
-                    label=f"» {npc['name']}", 
-                    action_type="TRIBUNAL_SELECT_B", 
-                    payload=npc["id"]
-                ))
-        result["ui_options"].append(UIAction(
-            label="‹ 重新选择", action_type="SHOW_TRIBUNAL_MENU", payload="BACK"
-        ))
-        result["done"] = True
-    
-    # --- 选第二个人 ---
-    elif user_input.startswith("CMD_TRIBUNAL_SELECT_B"):
-        npc_b_id = user_input.split(":", 1)[1]
-        d_state["temp_tribunal_b"] = npc_b_id
-        npc_b_name = next((n["name"] for n in NPC_LIST if n["id"] == npc_b_id), "未知")
-        npc_a_id = d_state.get("temp_tribunal_a")
-        npc_a_name = next((n["name"] for n in NPC_LIST if n["id"] == npc_a_id), "未知")
-        
+
         collected_ids = d_state["inventory"]["clues_collected"]
         if not collected_ids:
-            result["reply"] = "你还没有收集到任何线索，无法确定审问议题。"
+            result["reply"] = "你尚无线索可呈堂，先去收集证据吧。"
             result["done"] = True
             return result
-        
+
         result["reply"] = (
-            f"【{npc_a_name}】 vs 【{npc_b_name}】\n\n"
-            f"你要用什么证据作为对质议题？"
+            f"◆ **召集公堂**（已用 {used}/{MAX_TRIBUNALS} 次）\n\n"
+            "所有人将聚集大堂，你当众出示一件证物并选择首先质问的对象。\n"
+            "旁听者会产生可见反应，你可在 5 秒内转向追问。\n"
+            "※ 结束公堂后消耗 2 个时辰\n\n"
+            "请选择呈堂证物："
         )
         result["ui_type"] = "select_clue"
         for cid in collected_ids:
             clue = objective_clues_db.get(cid)
             if clue:
                 result["ui_options"].append(UIAction(
-                    label=f"▪ {clue['name']}", 
-                    action_type="TRIBUNAL_EXECUTE", 
+                    label=f"▪ {clue['name']}",
+                    action_type="TRIBUNAL_TOPIC",
                     payload=cid
                 ))
+        result["ui_options"].append(UIAction(label="‹ 取消", action_type="CANCEL", payload="MAIN"))
         result["done"] = True
-    
-    # --- 执行公堂对质 ---
-    elif user_input.startswith("CMD_TRIBUNAL_EXECUTE"):
-        clue_id = user_input.split(":", 1)[1]
-        npc_a_id = d_state.get("temp_tribunal_a")
-        npc_b_id = d_state.get("temp_tribunal_b")
-        clue = objective_clues_db.get(clue_id, {})
-        clue_name = clue.get("name", "未知")
-        clue_desc = clue.get("description", "")
-        
-        npc_a_profile = load_npc_profile(npc_a_id)
-        npc_b_profile = load_npc_profile(npc_b_id)
-        npc_a_name = npc_a_profile["static_profile"]["name"] if npc_a_profile else "未知"
-        npc_b_name = npc_b_profile["static_profile"]["name"] if npc_b_profile else "未知"
-        
-        # 读取双方的 relationship
-        a_about_b = ""
-        b_about_a = ""
-        if npc_a_profile:
-            rels = npc_a_profile.get("dynamic_state_template", {}).get("relationships", {})
-            for key, val in rels.items():
-                if key.lower().replace("_","") in npc_b_id.replace("npc_",""):
-                    a_about_b = val.get("description", "")
-                    break
-        if npc_b_profile:
-            rels = npc_b_profile.get("dynamic_state_template", {}).get("relationships", {})
-            for key, val in rels.items():
-                if key.lower().replace("_","") in npc_a_id.replace("npc_",""):
-                    b_about_a = val.get("description", "")
-                    break
-        
-        # 读取双方的 NPC 探索推断
-        activities = d_state.get("npc_activities", {})
-        a_theory = activities.get(npc_a_id, {}).get("theory", "")
-        b_theory = activities.get(npc_b_id, {}).get("theory", "")
 
-        # 读取双方的 trust 对玩家
-        trust_data = d_state.get("npc_trust", {})
-        a_trust_level = trust_data.get(npc_a_id, 50)
-        b_trust_level = trust_data.get(npc_b_id, 50)
-        
-        # 构建公堂 prompt
-        tribunal_prompt = f"""你是一个剧本杀的导演。现在进入"公堂对质"环节。
+    # ── 选好证物 → 选首要质问对象 ────────────────────────────────────────
+    elif user_input.startswith("CMD_TRIBUNAL_TOPIC:"):
+        clue_id = user_input.split(":", 1)[1]
+        d_state["temp_tribunal_clue"] = clue_id
+        clue = objective_clues_db.get(clue_id, {})
+        result["reply"] = (
+            f"证物【{clue.get('name', '未知')}】已置于桌上。\n"
+            "所有人目光汇聚——你首先质问谁？"
+        )
+        result["ui_type"] = "select_npc"
+        for npc in NPC_LIST:
+            result["ui_options"].append(UIAction(
+                label=f"» {npc['name']}",
+                action_type="TRIBUNAL_EXECUTE",
+                payload=npc["id"]
+            ))
+        result["done"] = True
+
+    # ── 执行全员公堂质问 ─────────────────────────────────────────────────
+    elif user_input.startswith("CMD_TRIBUNAL_EXECUTE:"):
+        focus_npc_id = user_input.split(":", 1)[1]
+        clue_id = d_state.get("temp_tribunal_clue", "")
+        clue = objective_clues_db.get(clue_id, {})
+        clue_name = clue.get("name", "未知证物")
+        clue_desc = clue.get("description", "")
+        focus_profile = load_npc_profile(focus_npc_id)
+        focus_name = focus_profile["static_profile"]["name"] if focus_profile else "未知"
+
+        # ── 构建旁听者摘要 ──
+        bystander_lines = []
+        bystander_npc_ids = []
+        for npc in NPC_LIST:
+            if npc["id"] == focus_npc_id:
+                continue
+            profile = load_npc_profile(npc["id"])
+            if not profile:
+                continue
+            trust = d_state.get("npc_trust", {}).get(npc["id"], 50)
+            # 取该旁听者对焦点 NPC 的 relationship 描述
+            rels = profile.get("dynamic_state_template", {}).get("relationships", {})
+            rel_desc = ""
+            for k, v in rels.items():
+                if k.lower() in focus_npc_id.replace("npc_", ""):
+                    rel_desc = v.get("description", "")
+                    break
+            # 取该旁听者对当前线索的推断（来自 exploration_config.theories）
+            clue_theory = profile.get("exploration_config", {}).get("theories", {}).get(clue_id, {}).get("theory", "")
+            bystander_lines.append(
+                f"  {profile['static_profile']['name']}"
+                f"（信任度{trust}，性格：{'、'.join(profile['static_profile']['personality']['traits'][:2])}）\n"
+                f"    对{focus_name}的看法：{rel_desc or '不熟悉'}\n"
+                f"    对此证物的推断：{clue_theory or '无特别看法'}"
+            )
+            bystander_npc_ids.append(npc["id"])
+
+        bystander_summary = "\n".join(bystander_lines)
+
+        # ── 取焦点 NPC 信任度与已有陈述 ──
+        focus_trust = d_state.get("npc_trust", {}).get(focus_npc_id, 50)
+        focus_stmts = d_state.get("npc_statements", {}).get(focus_npc_id, [])
+        recorded_stmts_text = ""
+        if focus_stmts:
+            lines = [f"  「{s['text']}」（{'已被揭穿' if s.get('confronted') else '尚未揭穿'}）"
+                     for s in focus_stmts]
+            recorded_stmts_text = "\n已记录的陈述：\n" + "\n".join(lines)
+
+        # ── 焦点 NPC 的 role_directive（作战指令）──
+        focus_directive = focus_profile.get("role_directive", "") if focus_profile else ""
+
+        tribunal_prompt = f"""你是一个古风悬疑剧本的导演。现在进入「全员公堂」环节。
 
 【场景】
-调查者（李密卫）把 {npc_a_name} 和 {npc_b_name} 叫到大堂，当面对质。
-调查者将证物【{clue_name}】拍在桌上：{clue_desc}
+调查者（李密卫）将所有人召集大堂，当众出示证物【{clue_name}】：{clue_desc}
+首要质问对象：{focus_name}（信任度{focus_trust}/100）
 
-【{npc_a_name} 的身份与认知】
-{json.dumps(npc_a_profile.get('static_profile', {}), ensure_ascii=False, indent=2) if npc_a_profile else '未知'}
-{npc_a_name}对{npc_b_name}的看法：{a_about_b}
-{npc_a_name}自己的调查推断：{a_theory if a_theory else '暂无'}
-{npc_a_name}对调查者的信任度：{a_trust_level}/100
+【{focus_name} 的完整档案】
+静态背景：{json.dumps(focus_profile.get('static_profile', {}), ensure_ascii=False) if focus_profile else '未知'}
+行为准则：{focus_directive}
+{recorded_stmts_text}
 
-【{npc_b_name} 的身份与认知】
-{json.dumps(npc_b_profile.get('static_profile', {}), ensure_ascii=False, indent=2) if npc_b_profile else '未知'}
-{npc_b_name}对{npc_a_name}的看法：{b_about_a}
-{npc_b_name}自己的调查推断：{b_theory if b_theory else '暂无'}
-{npc_b_name}对调查者的信任度：{b_trust_level}/100
+【旁听者列表（每人给出一句简短的肢体/神情反应，不超过15字/人）】
+{bystander_summary}
 
 【输出要求】
-请写一段 3-5 轮的对质对话，格式如下：
-- 每轮包含两人各一句话
-- 两人根据各自的秘密、性格、对彼此的看法来争论
-- 围绕证物【{clue_name}】展开，可以互相指控、辩解、甩锅
-- 信任度低的 NPC 可能对调查者说谎或不配合
-- 不要暴露角色的 secrets 中的终极秘密，除非证据已经指向他
-- 对话要体现性格差异，要有戏剧冲突
-- 最后一轮可以不了了之（僵持）或一方情绪失控
-- 控制在 300-500 字
+请严格以 JSON 格式返回，不要包含任何 markdown 代码块标记：
+{{
+  "focus_reply": "{focus_name}的回答（2-4句，符合其秘密和行为准则，结合证物内容）",
+  "bystander_reactions": [
+    {{"name": "旁听者姓名", "reaction": "简短肢体/神情（不超过15字）", "suspicion_shift": "increase/decrease/none"}}
+  ],
+  "redirect_hint": "建议下一个转向追问的对象姓名，若无则为空字符串"
+}}
 
-请以 JSON 格式返回：
-{{"reply": "对质内容（用 **角色名：** 开头区分发言，用 \\n\\n 分隔每轮）"}}"""
+注意：
+- {focus_name} 的回复必须符合其秘密和行为准则，不能主动泄露终极秘密
+- 旁听者的反应要体现其性格和与焦点人物的关系
+- suspicion_shift: increase=该旁听者神色慌张/可疑, decrease=放松/如释重负, none=无明显变化"""
 
         messages = [
             {"role": "system", "content": tribunal_prompt},
-            {"role": "user", "content": f"请围绕【{clue_name}】展开对质。"}
+            {"role": "user", "content": f"请围绕证物【{clue_name}】对{focus_name}展开公堂质问。"}
         ]
-        
-        result["reply"] = await call_llm(tribunal_prompt, messages, model_id)
-        result["sender"] = "公堂对质"
-        result["ui_type"] = "text"
-        
-        # 消耗时间：跳过 2 个时辰（直接修改，避免重复触发NPC探索）
-        advance_time_func = _get("advance_time")
-        for _ in range(7):  # 前7次只修改计数器
+
+        raw = await call_llm(tribunal_prompt, messages, model_id)
+
+        # ── 解析 LLM JSON 输出 ──
+        import re as _re
+        try:
+            clean = _re.sub(r"```json|```", "", raw).strip()
+            parsed = json.loads(clean)
+        except Exception:
+            parsed = {"focus_reply": raw, "bystander_reactions": [], "redirect_hint": ""}
+
+        focus_reply = parsed.get("focus_reply", raw)
+        reactions = parsed.get("bystander_reactions", [])
+        redirect_hint = parsed.get("redirect_hint", "")
+
+        # ── 组合显示文本 ──
+        bystander_text = ""
+        if reactions:
+            lines = [f"  【{r['name']}】{r['reaction']}" for r in reactions]
+            bystander_text = "\n\n旁听者反应：\n" + "\n".join(lines)
+
+        result["reply"] = f"**{focus_name}：** {focus_reply}{bystander_text}"
+        result["sender"] = "全员公堂"
+        result["ui_type"] = "tribunal_mode"
+
+        # ── 转向按钮：每个旁听者一个，含 suspicion_shift 信号 ──
+        for r in reactions:
+            shift = r.get("suspicion_shift", "none")
+            icon = "⚠ " if shift == "increase" else ("✓ " if shift == "decrease" else "» ")
+            npc_match = next((n["id"] for n in NPC_LIST if n["name"] == r["name"]), None)
+            if npc_match:
+                result["ui_options"].append(UIAction(
+                    label=f"{icon}转向追问 {r['name']}",
+                    action_type="TRIBUNAL_REDIRECT",
+                    payload=npc_match
+                ))
+        result["ui_options"].append(UIAction(
+            label="◆ 结束公堂", action_type="TRIBUNAL_CLOSE", payload="CLOSE"
+        ))
+
+        # ── 保存本轮公堂会话（REDIRECT 时复用）──
+        d_state["tribunal_session"] = {
+            "clue_id": clue_id,
+            "focus_npc_id": focus_npc_id,
+            "reactions": reactions,
+            "redirect_hint": redirect_hint,
+        }
+
+        # ── 信任度调整 ──
+        adjust_trust(d_state, focus_npc_id, "tribunal_accused")
+        trust_map = d_state.setdefault("npc_trust", {})
+        for r in reactions:
+            npc_match = next((n["id"] for n in NPC_LIST if n["name"] == r["name"]), None)
+            if npc_match:
+                if r.get("suspicion_shift") == "increase":
+                    trust_map[npc_match] = max(0, trust_map.get(npc_match, 50) - 5)
+                elif r.get("suspicion_shift") == "decrease":
+                    trust_map[npc_match] = min(100, trust_map.get(npc_match, 50) + 5)
+
+        result["done"] = True
+
+    # ── 转向追问（5 秒内按下转向按钮）────────────────────────────────────
+    elif user_input.startswith("CMD_TRIBUNAL_REDIRECT:"):
+        new_focus_id = user_input.split(":", 1)[1]
+        # 沿用当前公堂会话的线索，切换焦点后复用 EXECUTE 路径
+        session = d_state.get("tribunal_session", {})
+        clue_id = session.get("clue_id", d_state.get("temp_tribunal_clue", ""))
+        d_state["temp_tribunal_clue"] = clue_id
+        return await handle_tribunal(
+            f"CMD_TRIBUNAL_EXECUTE:{new_focus_id}",
+            request, current_state, model_id
+        )
+
+    # ── 结束公堂：消耗 2 个时辰 ─────────────────────────────────────────
+    elif user_input == "CMD_TRIBUNAL_CLOSE":
+        MAX_AP = 4
+        for _ in range(7):  # 前 7 次只推进计数器
             d_state["ap_used_this_cycle"] = d_state.get("ap_used_this_cycle", 0) + 1
-            MAX_AP = 4
             if d_state["ap_used_this_cycle"] >= MAX_AP:
                 d_state["ap_used_this_cycle"] = 0
                 current_idx = d_state["time_idx"]
@@ -887,18 +1273,56 @@ async def handle_tribunal(user_input, request, current_state, model_id):
                     d_state["time_idx"] = current_idx + 1
         # 最后一次调用 advance_time 触发一次 NPC 探索
         advance_time_func(current_state)
-        
+
         d_state["tribunal_count"] = d_state.get("tribunal_count", 0) + 1
-        
-        # 双方信任度下降
-        adjust_trust(d_state, npc_a_id, "tribunal_accused")
-        adjust_trust(d_state, npc_b_id, "tribunal_accused")
-        
-        # 清理临时数据
-        d_state.pop("temp_tribunal_a", None)
-        d_state.pop("temp_tribunal_b", None)
-        
+        d_state.pop("temp_tribunal_clue", None)
+        d_state.pop("tribunal_session", None)
+
+        result["reply"] = (
+            f"公堂散场。\n"
+            f"（当前：第{d_state['day']}日 {TIME_CYCLES[d_state['time_idx']]}）"
+        )
+        result["ui_type"] = "text"
         result["done"] = True
-    
+
+    # ── 兼容旧指令（SELECT_A / SELECT_B），重定向到新菜单 ────────────────
+    elif user_input.startswith("CMD_TRIBUNAL_SELECT_A") or user_input.startswith("CMD_TRIBUNAL_SELECT_B"):
+        result["reply"] = "公堂流程已更新，请重新召集公堂。"
+        result["ui_type"] = "text"
+        result["ui_options"].append(UIAction(
+            label="» 重新召集公堂", action_type="SHOW_TRIBUNAL_MENU", payload=""
+        ))
+        result["done"] = True
+
     return result
+
+async def handle_recall_cmd(user_input, request, current_state, model_id):
+    """处理 CMD_SHOW_RECALL_MENU / CMD_RECALL_* 指令（纯只读，不消耗 AP）"""
+    RECALL_CMDS = {
+        "CMD_SHOW_RECALL_MENU", "CMD_RECALL_CLUES",
+        "CMD_RECALL_INFERENCES", "CMD_RECALL_TIMELINE"
+    }
+    if user_input not in RECALL_CMDS:
+        return {"done": False, "reply": "", "sender": "系统",
+                "ui_type": "text", "ui_options": [], "bg_img": None}
+
+    UIAction = _get("UIAction")
+    d_state = current_state["dynamic_state"]
+    objective_clues_db = _get("objective_clues_db")
+
+    res = handle_recall(user_input, d_state, objective_clues_db)
+
+    ui_opts = [
+        UIAction(label=o["label"], action_type=o["action_type"], payload=o["payload"])
+        for o in res["ui_options"]
+    ]
+
+    return {
+        "reply": res["reply"],
+        "sender": "调查笔记",
+        "ui_type": res["ui_type"],
+        "ui_options": ui_opts,
+        "bg_img": None,
+        "done": True,
+    }
     

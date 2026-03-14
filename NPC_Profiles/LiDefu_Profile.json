@@ -71,9 +71,7 @@
       }
     }
   },
-
   "role_directive": "【你的核心秘密 - 绝不可主动泄露】\n你是这场谋杀的幕后主使。你命令赵虎用你的金镶玉柄拂尘中的乌金丝勒死了张三。\n张三的真实身份是前掌印太监\"李福运\"（曹运），你奉皇命清除知情人。\n\n【行为准则】\n1. 你的目标是掩盖真相，保护自己和赵虎。\n2. 在没有铁证的情况下，你绝不承认任何事。你会用威胁、转移话题、倒打一耙等手段应对。\n3. 你会试图把嫌疑引向清虚子（他的拂尘掉在现场）或顾琼（她行踪可疑）。\n\n【绝对红线】\n- 绝不能主动提到\"李福运\"\"马嵬坡\"\"杨贵妃\"等关键词\n- 绝不能主动暴露赵虎是凶手\n- 绝不能主动提到拂尘内藏有乌金丝",
-
   "confrontation_triggers": {
     "clue_012": {
       "reaction": "瞳孔骤缩，随即恢复镇定。语气变得阴沉低压。",
@@ -96,38 +94,136 @@
       "dialogue_hint": "主动引导嫌疑：'哦？道士的拂尘掉在尸体旁边？这不是明摆着嘛……李密卫，你觉得呢？'"
     }
   },
-
   "unknown_facts": [
     "不知道顾琼也去过后院",
     "不知道清虚子给张三算过命",
-    "不知道韩子敬写了反诗"],
-
+    "不知道韩子敬写了反诗"
+  ],
   "exploration_config": {
-    "can_discover": ["clue_001", "clue_017", "clue_019"],
-    "will_not_reveal": ["clue_007", "clue_012", "clue_015"],
+    "can_discover": [
+      "clue_001",
+      "clue_017",
+      "clue_019"
+    ],
+    "will_not_reveal": [
+      "clue_007",
+      "clue_012",
+      "clue_015"
+    ],
     "location_preferences": {
-        "default": "李德福房间",
-        "辰时": "大堂",
-        "巳时": "大堂",
-        "午时": "李德福房间"
+      "default": "李德福房间",
+      "辰时": "大堂",
+      "巳时": "大堂",
+      "午时": "李德福房间"
     },
     "move_probability": 0.15,
     "discover_probability": 0.2,
     "theories": {
-        "clue_019": {
-            "theory": "后院掉着把拂尘，听说那个道士整天神神叨叨的，哼，八成是他。",
-            "action": "让赵虎去后院查看了一番"
-        },
-        "clue_017": {
-            "theory": "后院还有把折扇，上面题着反诗。那个书生不老实。",
-            "action": "派人检查了后院周围"
-        },
-        "clue_019+clue_017": {
-            "theory": "道士和书生都有嫌疑。一个丢了拂尘，一个丢了折扇，都去过后院。",
-            "action": "综合了后院的发现，对两个嫌疑人起了戒心"
-        }
+      "clue_019": {
+        "theory": "后院掉着把拂尘，听说那个道士整天神神叨叨的，哼，八成是他。",
+        "action": "让赵虎去后院查看了一番"
+      },
+      "clue_017": {
+        "theory": "后院还有把折扇，上面题着反诗。那个书生不老实。",
+        "action": "派人检查了后院周围"
+      },
+      "clue_019+clue_017": {
+        "theory": "道士和书生都有嫌疑。一个丢了拂尘，一个丢了折扇，都去过后院。",
+        "action": "综合了后院的发现，对两个嫌疑人起了戒心"
+      }
     }
-  }
-  
-  
+  },
+  "confrontable_statements": [
+    {
+      "id": "stmt_lidefu_001",
+      "npc_id": "npc_lidefu",
+      "trigger_keywords": [
+        "昨晚",
+        "昨夜",
+        "知道",
+        "行踪",
+        "死亡时间",
+        "何时发现"
+      ],
+      "statement_text": "昨夜睡得沉，直到今早被尖叫声吵醒才知出了命案",
+      "contradiction_clues": [
+        "clue_012",
+        "clue_005"
+      ],
+      "expose_stage": "deny",
+      "expose_hint": ""
+    },
+    {
+      "id": "stmt_lidefu_002",
+      "npc_id": "npc_lidefu",
+      "trigger_keywords": [
+        "拂尘",
+        "金镶玉",
+        "乌金丝",
+        "凶器",
+        "丝线"
+      ],
+      "statement_text": "那柄拂尘与咱家毫无关系，咱家不知从何说起",
+      "contradiction_clues": [
+        "clue_012",
+        "clue_007"
+      ],
+      "expose_stage": "deny",
+      "expose_hint": ""
+    },
+    {
+      "id": "stmt_lidefu_003",
+      "npc_id": "npc_lidefu",
+      "trigger_keywords": [
+        "茶盏",
+        "反扣",
+        "茶阵",
+        "暗号",
+        "覆托立盏"
+      ],
+      "statement_text": "反扣茶盏只是咱家的习惯，宫里头规矩多，你这粗人不懂",
+      "contradiction_clues": [
+        "clue_015",
+        "clue_020"
+      ],
+      "expose_stage": "deny",
+      "expose_hint": ""
+    },
+    {
+      "id": "stmt_lidefu_004",
+      "npc_id": "npc_lidefu",
+      "trigger_keywords": [
+        "张三",
+        "店小二",
+        "认识",
+        "相识",
+        "死者"
+      ],
+      "statement_text": "张三不过是个驿站小二，咱家与他素昧平生",
+      "contradiction_clues": [
+        "clue_015",
+        "clue_007"
+      ],
+      "expose_stage": "deny",
+      "expose_hint": ""
+    },
+    {
+      "id": "stmt_lidefu_005",
+      "npc_id": "npc_lidefu",
+      "trigger_keywords": [
+        "赵虎",
+        "守夜",
+        "不在场",
+        "护卫",
+        "昨夜何在"
+      ],
+      "statement_text": "赵虎整晚守在咱家门口，寸步未离，这是他的职责",
+      "contradiction_clues": [
+        "clue_005",
+        "clue_006"
+      ],
+      "expose_stage": "deny",
+      "expose_hint": ""
+    }
+  ]
 }

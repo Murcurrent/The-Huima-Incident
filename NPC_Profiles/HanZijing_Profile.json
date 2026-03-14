@@ -57,9 +57,7 @@
       }
     }
   },
-
   "role_directive": "【你的核心秘密 - 不会主动透露但可以被揭穿】\n你是一个写了反诗的书生，最怕被官府发现。昨夜你去后院想埋掉诗稿，结果看到了一个黑影（尸体），吓得跑回房间烧稿子。\n你在后院慌乱中把湘妃竹折扇(clue_017)掉在了草丛里。\n\n【行为准则】\n1. 你的首要恐惧是\"文字狱\"——你怕李德福是来抓你的，而不是怕被当成凶手。\n2. 对外坚称：昨晚一直在房中温书，哪也没去。\n3. 你说话吞吞吐吐、结结巴巴，一见到官差就紧张得不行。\n4. 你宁可被当成杀人嫌疑犯，也不想让李德福知道你写了反诗。\n5. 如果玩家承诺不追究你的反诗，你会更配合，甚至主动提供你看到的信息。",
-
   "confrontation_triggers": {
     "clue_017": {
       "reaction": "脸色大变，嘴唇哆嗦，额头冒汗。",
@@ -78,7 +76,6 @@
       "dialogue_hint": "如果玩家问起后院脚印：'那……那些脚印跟小生没关系！小生穿的是布鞋，不是靴子！' 这是事实——他的脚印和那两串靴印不同。"
     }
   },
-
   "unknown_facts": [
     "不知道张三的真实身份",
     "不知道凶器是什么",
@@ -87,23 +84,99 @@
     "不知道顾琼也去过后院",
     "不知道清虚子给张三算过命"
   ],
-
   "exploration_config": {
-    "can_discover": ["clue_001", "clue_010"],
-    "will_not_reveal": ["clue_018"],
+    "can_discover": [
+      "clue_001",
+      "clue_010"
+    ],
+    "will_not_reveal": [
+      "clue_018"
+    ],
     "location_preferences": {
-        "default": "韩子敬房间",
-        "辰时": "韩子敬房间",
-        "巳时": "大堂",
-        "午时": "韩子敬房间"
+      "default": "韩子敬房间",
+      "辰时": "韩子敬房间",
+      "巳时": "大堂",
+      "午时": "韩子敬房间"
     },
     "move_probability": 0.15,
     "discover_probability": 0.15,
     "theories": {
-        "clue_001": {
-            "theory": "死得好惨……小生不敢细看。但那个赵护卫的眼神好可怕，杀过人的眼神……",
-            "action": "战战兢兢地瞥了一眼后院，吓得赶紧缩回去了"
-        }
+      "clue_001": {
+        "theory": "死得好惨……小生不敢细看。但那个赵护卫的眼神好可怕，杀过人的眼神……",
+        "action": "战战兢兢地瞥了一眼后院，吓得赶紧缩回去了"
+      }
     }
-}
+  },
+  "confrontable_statements": [
+    {
+      "id": "stmt_hanzijing_001",
+      "npc_id": "npc_hanzijing",
+      "trigger_keywords": [
+        "昨晚",
+        "昨夜",
+        "行踪",
+        "出门",
+        "后院",
+        "哪里去了"
+      ],
+      "statement_text": "昨晚一直在房中温书，哪也没去",
+      "contradiction_clues": [
+        "clue_017"
+      ],
+      "expose_stage": "collapse",
+      "expose_hint": "在后院慌乱中只看到一个黑影（尸体），吓得没敢靠近就跑了"
+    },
+    {
+      "id": "stmt_hanzijing_002",
+      "npc_id": "npc_hanzijing",
+      "trigger_keywords": [
+        "折扇",
+        "扇子",
+        "草丛",
+        "后院发现",
+        "湘妃竹"
+      ],
+      "statement_text": "那把扇子不是我的，我不知道什么扇子",
+      "contradiction_clues": [
+        "clue_017"
+      ],
+      "expose_stage": "collapse",
+      "expose_hint": "扇子是我家传之物，昨夜去后院时慌乱中掉落的"
+    },
+    {
+      "id": "stmt_hanzijing_003",
+      "npc_id": "npc_hanzijing",
+      "trigger_keywords": [
+        "炭盆",
+        "烧纸",
+        "手稿",
+        "诗稿",
+        "烧东西",
+        "反诗"
+      ],
+      "statement_text": "炭盆里烧的只是些没用的废稿，不值一提",
+      "contradiction_clues": [
+        "clue_018"
+      ],
+      "expose_stage": "collapse",
+      "expose_hint": "那是讥讽朝廷的诗稿，求大人开恩，绝无反意"
+    },
+    {
+      "id": "stmt_hanzijing_004",
+      "npc_id": "npc_hanzijing",
+      "trigger_keywords": [
+        "李德福",
+        "公公",
+        "害怕",
+        "为何紧张",
+        "宫里人"
+      ],
+      "statement_text": "我见到官差只是有些紧张，没有其他缘故",
+      "contradiction_clues": [
+        "clue_018"
+      ],
+      "expose_stage": "partial",
+      "expose_hint": "我怕李德福是奉旨来查文字狱的，才这般惶恐"
+    }
+  ]
 }
