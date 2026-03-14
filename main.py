@@ -34,7 +34,7 @@ def load_allowed_tokens() -> Set[str]:
         with open("tokens.json", "r", encoding="utf-8") as f:
             data = json.load(f)
             return set(data.get("valid_tokens", []))
-    except: return set()
+    except (IOError, json.JSONDecodeError): return set()
 
 BINDING_FILE = "token_bindings.json"
 
@@ -43,7 +43,7 @@ def load_bindings() -> Dict[str, str]:
     try:
         with open(BINDING_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except: return {}
+    except (IOError, json.JSONDecodeError): return {}
 
 def save_binding(token: str, device_id: str):
     bindings = load_bindings()

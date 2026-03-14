@@ -1125,7 +1125,7 @@ async def handle_tribunal(user_input, request, current_state, model_id):
             rels = profile.get("dynamic_state_template", {}).get("relationships", {})
             rel_desc = ""
             for k, v in rels.items():
-                if k.lower() in focus_npc_id.replace("npc_", ""):
+                if k.lower() == focus_npc_id.replace("npc_", ""):
                     rel_desc = v.get("description", "")
                     break
             # 取该旁听者对当前线索的推断（来自 exploration_config.theories）
@@ -1260,18 +1260,16 @@ async def handle_tribunal(user_input, request, current_state, model_id):
 
     # ── 结束公堂：消耗 2 个时辰 ─────────────────────────────────────────
     elif user_input == "CMD_TRIBUNAL_CLOSE":
-        MAX_AP = 4
-        for _ in range(7):  # 前 7 次只推进计数器
-            d_state["ap_used_this_cycle"] = d_state.get("ap_used_this_cycle", 0) + 1
-            if d_state["ap_used_this_cycle"] >= MAX_AP:
-                d_state["ap_used_this_cycle"] = 0
-                current_idx = d_state["time_idx"]
-                if current_idx == 11:
-                    d_state["day"] = d_state.get("day", 1) + 1
-                    d_state["time_idx"] = 0
-                else:
-                    d_state["time_idx"] = current_idx + 1
-        # 最后一次调用 advance_time 触发一次 NPC 探索
+        # 直接推进 2 个时辰（无论进入时 ap_used_this_cycle 为何值）
+        d_state["ap_used_this_cycle"] = 0
+        current_idx = d_state["time_idx"]
+        new_idx = current_idx + 2
+        if new_idx > 11:
+            d_state["day"] = d_state.get("day", 1) + 1
+            d_state["time_idx"] = new_idx - 12
+        else:
+            d_state["time_idx"] = new_idx
+        # 调用一次 advance_time 触发 NPC 探索
         advance_time_func(current_state)
 
         d_state["tribunal_count"] = d_state.get("tribunal_count", 0) + 1

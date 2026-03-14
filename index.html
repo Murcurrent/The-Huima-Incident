@@ -877,37 +877,44 @@
 
                 <div class="tut-section">
                     <div class="tut-title">行动按钮</div>
-                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M24 16h16l3 4v20l-3 4H24l-3-4V20z" stroke="#b8963e" stroke-width="1.5" stroke-dasharray="40 2 8 2"/><ellipse cx="32" cy="30" rx="4" ry="6" fill="#b8963e" opacity="0.12"/></svg><span><b>搜查现场</b> — 进入各房间翻找线索。每检查2件物品消耗1行动点。关键证据可能需要反复搜查才能发现。</span></div>
-                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M18 22C18 12 46 12 46 22L46 36C46 48 18 48 18 36Z" stroke="#b8963e" stroke-width="1.5" stroke-dasharray="60 2 6 2"/><circle cx="20" cy="25.5" r="1" fill="#b8963e"/><circle cx="28" cy="24.5" r="1" fill="#b8963e"/></svg><span><b>盘问众人</b> — 与NPC自由对话套取信息。结束对话消耗1行动点。NPC会根据对你的信任度决定配合程度。</span></div>
-                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M16 48L30 18 32 16 30 18 34 20 20 50" stroke="#b8963e" stroke-width="1.3"/><path d="M48 48L34 18 32 16 34 18 30 20 44 50" stroke="#b8963e" stroke-width="1.3"/></svg><span><b>出示证据</b> — 向NPC亮出你收集的线索，逼问其反应。会降低对方信任度。</span></div>
-                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><rect x="18" y="14" width="28" height="36" rx="1" stroke="#b8963e" stroke-width="1.3" stroke-dasharray="50 2 6 2"/><rect x="34" y="38" width="8" height="8" rx="0.5" fill="#912929" opacity="0.12"/></svg><span><b>查看卷宗</b> — 查看当前时辰、精力、NPC位置等状态。</span></div>
-                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M12 40h40v4H12z" stroke="#b8963e" stroke-width="1.2"/><rect x="24" y="28" width="16" height="10" rx="1.5" stroke="#b8963e" stroke-width="1.3" transform="rotate(-8 32 33)"/></svg><span><b>召集公堂</b> — 把两名嫌疑人叫到大堂当面对质。消耗2个时辰，最多使用3次。</span></div>
-                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M14 34h20l4-2v-8l2-1v12l-2 1h4v-4l2-1v6l-2 1h3v-3l2-1v5l-2 1h3v-2l2-1v4l-4 2H18l-4-4z" stroke="#912929" stroke-width="1.2" stroke-linejoin="round"/></svg><span><b>指认凶手</b> — 向李德福指认凶手并出示凶器。指错即死。</span></div>
+                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M24 16h16l3 4v20l-3 4H24l-3-4V20z" stroke="#b8963e" stroke-width="1.5" stroke-dasharray="40 2 8 2"/><ellipse cx="32" cy="30" rx="4" ry="6" fill="#b8963e" opacity="0.12"/></svg><span><b>搜查现场</b> — 进入各房间翻找线索，每次搜查消耗1行动点。部分证据藏得很深，需多次搜查。</span></div>
+                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M18 22C18 12 46 12 46 22L46 36C46 48 18 48 18 36Z" stroke="#b8963e" stroke-width="1.5" stroke-dasharray="60 2 6 2"/><circle cx="20" cy="25.5" r="1" fill="#b8963e"/><circle cx="28" cy="24.5" r="1" fill="#b8963e"/></svg><span><b>盘问众人</b> — 与NPC自由对话套取信息。结束对话消耗1行动点。NPC会根据信任度决定配合程度。</span></div>
+                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M16 48L30 18 32 16 30 18 34 20 20 50" stroke="#b8963e" stroke-width="1.3"/><path d="M48 48L34 18 32 16 34 18 30 20 44 50" stroke="#b8963e" stroke-width="1.3"/></svg><span><b>出示证据</b> — 向NPC亮出线索逼问反应。会降低信任度，但可能暴露矛盾。</span></div>
+                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><rect x="18" y="14" width="28" height="36" rx="1" stroke="#b8963e" stroke-width="1.3" stroke-dasharray="50 2 6 2"/><rect x="34" y="38" width="8" height="8" rx="0.5" fill="#912929" opacity="0.12"/></svg><span><b>查看卷宗</b> — 查看已收集线索、推理记录和案件时间线。不消耗行动点，随时可用。</span></div>
+                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M12 40h40v4H12z" stroke="#b8963e" stroke-width="1.2"/><rect x="24" y="28" width="16" height="10" rx="1.5" stroke="#b8963e" stroke-width="1.3" transform="rotate(-8 32 33)"/></svg><span><b>召集公堂</b> — 选择一条关键证据和一名嫌疑人，当堂对质。所有人在场旁听并可能发言。消耗1行动点。</span></div>
+                    <div class="tut-row"><svg viewBox="0 0 64 64" fill="none"><path d="M14 34h20l4-2v-8l2-1v12l-2 1h4v-4l2-1v6l-2 1h3v-3l2-1v5l-2 1h3v-2l2-1v4l-4 2H18l-4-4z" stroke="#912929" stroke-width="1.2" stroke-linejoin="round"/></svg><span><b>指认凶手</b> — 指认凶手并出示凶器。结果取决于你的判断是否正确。</span></div>
                 </div>
 
                 <div class="tut-section">
                     <div class="tut-title">时间与精力</div>
                     游戏从<b>第1日辰时</b>开始。每个时辰有<b>4个行动点</b>，用完自动推进到下一时辰。<br>
-                    到<b>第2日亥时</b>，李德福将强制要求你指认凶手。合理分配时间是破案的关键。
+                    到<b>第3日午时</b>，李德福将强制要求指认凶手。合理分配时间是关键。
                 </div>
 
                 <div class="tut-section">
                     <div class="tut-title">信任度机制</div>
-                    每个NPC对你都有一个信任度（0-100）。<br>
-                    <b>提升信任</b>：友好对话 · 公堂证明清白<br>
-                    <b>降低信任</b>：搜查其房间 · 出示证据质问 · 公堂指控 · 被抓到翻房间<br>
-                    信任度影响NPC的配合程度。信任度≥70时，NPC在房间内也会允许你进入搜查。
+                    每个NPC有信任度（0-100），影响对话态度和房间准入。<br>
+                    <b>提升信任</b>：友好对话 · 公堂澄清 · 展示无关证据<br>
+                    <b>降低信任</b>：搜查房间 · 出示证据质问 · 公堂指控 · 被撞见搜查<br>
+                    信任&lt;25：无法进入其房间；25-70：主人在场可搜但难度高；≥70：主人不在，搜查最轻松。
                 </div>
 
                 <div class="tut-section">
-                    <div class="tut-title">搜查须知</div>
-                    NPC在自己房间时，你无法进入（除非信任度≥70）。<br>
-                    部分关键证据藏得很深，需要对同一物品<b>多次搜查</b>才能发现。<br>
-                    退出搜查时，可能会被回房的NPC撞见。
+                    <div class="tut-title">光照与时机</div>
+                    部分精细线索需要光照才能辨认。不同地点在不同时辰有自然光。<br>
+                    某些线索仅在特定时段出现，注意把握时机。
+                </div>
+
+                <div class="tut-section">
+                    <div class="tut-title">推理系统</div>
+                    收集特定线索组合后，会自动触发推理洞察，帮你串联证据。<br>
+                    可在卷宗中随时回顾所有推理记录。
                 </div>
 
                 <div class="tut-tip">
-                    ※ 提示：注意线索之间的关联。某些物品上的标记或花纹可能指向同一个人……
+                    ※ 提示：注意线索之间的关联——某些物品上的标记或花纹可能指向同一个人。<br>
+                    NPC会自行活动，不同时辰出现在不同地点，甚至可能独自发现线索。<br>
+                    案件有多种结局，取决于你掌握的证据和推理的深度。
                 </div>
             </div>
         </div>
@@ -1633,25 +1640,6 @@
             send({user_input:`CMD_TRIBUNAL_TOPIC:${opt.payload}`});
         }
 
-        /* 点击头像 → 发起质问（须已选证物） */
-        function _tbClickAvatar(npcId, npcName){
-            if(!tbState.activeClue) return;
-            tbState.focusNpc = npcName;
-            _tbClearCountdowns();
-            // 所有头像去掉高亮
-            TRIBUNAL_NPCS.forEach(n=>{
-                const id = TRIBUNAL_NPC_IDS[n];
-                document.getElementById(`tb-av-${id}`)?.classList.remove('focused','reacting','calm-react');
-                document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
-            });
-            // 被质问者高亮
-            document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
-            const npcEl = document.getElementById(`tb-npc-${npcId}`);
-            if(npcEl) npcEl.querySelector('.tb-name').style.color='var(--gold)';
-            // 发送
-            send({user_input:`CMD_TRIBUNAL_EXECUTE:${npcId}`});
-        }
-
         /* 后端返回 tribunal_mode 时调用此函数渲染 */
         function tbHandleResponse(replyText, uiOptions){
             if(!tbState.active) return;
@@ -1794,6 +1782,8 @@
                 document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
             });
             document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
+            const nameEl = document.getElementById(`tb-npc-${npcId}`)?.querySelector('.tb-name');
+            if(nameEl) nameEl.style.color='var(--gold)';
             send({user_input:`CMD_TRIBUNAL_EXECUTE:${npcId}`});
         }
         // ===== 状态栏更新 =====
