@@ -498,80 +498,11 @@
             box-shadow:0 0 0 3px rgba(184,150,62,.25),0 4px 14px rgba(0,0,0,.4);
             transform:translateY(-3px);
         }
-        .tb-avatar-wrap.reacting{
-            border-color:var(--cinnabar);
-            box-shadow:0 0 0 3px rgba(145,41,41,.22);
-            animation:tbPulse .6s ease 2;
-        }
-        .tb-avatar-wrap.calm-react{
-            border-color:var(--jade);
-            box-shadow:0 0 0 3px rgba(58,107,90,.22);
-        }
-        @keyframes tbPulse{
-            0%,100%{transform:translateY(0) scale(1)}
-            50%{transform:translateY(-2px) scale(1.06)}
-        }
         .tb-name{
             font-family:var(--font-title);font-size:11px;
             color:var(--ink-mid);letter-spacing:1px;
         }
         .tb-npc.focused .tb-name{ color:var(--gold) }
-
-        /* 气泡弹出框（旁听反应 + 转向按钮） */
-        .tb-bubble{
-            position:absolute;
-            bottom:calc(100% + 10px); /* 在头像上方弹出 */
-            left:50%;transform:translateX(-50%);
-            width:160px;
-            background:linear-gradient(160deg,#faf5ec,var(--paper-warm));
-            border:1.5px solid var(--gold);
-            border-radius:8px;
-            padding:8px 10px;
-            box-shadow:0 6px 20px rgba(0,0,0,.35);
-            z-index:100;
-            pointer-events:none;opacity:0;
-            transition:opacity .2s, transform .2s;
-            transform:translateX(-50%) translateY(6px);
-        }
-        .tb-bubble.visible{
-            opacity:1;pointer-events:all;
-            transform:translateX(-50%) translateY(0);
-        }
-        /* 气泡小三角 */
-        .tb-bubble::after{
-            content:'';position:absolute;
-            top:100%;left:50%;transform:translateX(-50%);
-            border:7px solid transparent;
-            border-top-color:var(--gold);
-        }
-        .tb-bubble::before{
-            content:'';position:absolute;
-            top:100%;left:50%;transform:translateX(-50%);
-            border:6px solid transparent;
-            border-top-color:var(--paper-warm);
-            z-index:1;margin-top:-1px;
-        }
-        .tb-bubble-reaction{
-            font-size:11.5px;color:var(--ink-mid);
-            line-height:1.6;margin-bottom:6px;
-            border-bottom:0.5px solid var(--paper-dark);
-            padding-bottom:5px;
-        }
-        .tb-bubble-reaction .rb-icon{ font-size:12px;margin-right:2px }
-        .tb-redirect-btn{
-            width:100%;padding:5px 0;
-            background:linear-gradient(160deg,var(--wood),var(--wood-mid));
-            color:var(--paper);border:none;
-            font-family:var(--font-title);font-size:12px;letter-spacing:1px;
-            cursor:pointer;border-radius:3px;position:relative;overflow:hidden;
-            display:flex;align-items:center;justify-content:center;gap:4px;
-        }
-        .tb-redirect-btn:active{filter:brightness(.85)}
-        .tb-redirect-btn .tb-countdown{
-            position:absolute;bottom:0;left:0;height:2px;
-            background:var(--gold);transition:width linear;
-        }
-        .tb-redirect-btn.expired{ opacity:.38;pointer-events:none }
 
         /* 中央对话区 */
         .tb-dialogue{
@@ -1158,23 +1089,20 @@
                     history.appendChild(sDiv);
                     history.scrollTop=history.scrollHeight;
                 }
-                if(d.reply_text)addMsg(d.reply_text,'system',d.sender_name, _afterType);
-                else _afterType();
+                // tribunal_mode 响应跳过主聊天打字机，直接路由到公堂层
+                if(d.ui_type==='tribunal_mode'){
+                    _afterType();
+                } else if(d.reply_text){
+                    addMsg(d.reply_text,'system',d.sender_name, _afterType);
+                } else {
+                    _afterType();
+                }
 
                 function _afterType(){
-                // 公堂模式：拦截并渲染到公堂层
                 if(d.ui_type==='tribunal_mode'){
                     tbHandleResponse(d.reply_text||'', d.ui_options||[]);
-                } else if(tbState.active && d.ui_type==='select_npc' && d.ui_options && d.ui_options.every(o=>o.action_type==='TRIBUNAL_EXECUTE')){
-                    // 公堂内「选首问对象」提示 → 在对话区显示提示，不渲染到 controls
-                    const dialogue=document.getElementById('tb-dialogue');
-                    const hint=document.createElement('div');
-                    hint.style.cssText='text-align:center;color:var(--ink-light);font-size:12px;letter-spacing:2px;padding:6px 0;';
-                    hint.textContent='请点击上方头像选择首要质问对象';
-                    dialogue.appendChild(hint);
-                    dialogue.scrollTop=dialogue.scrollHeight;
                 } else if(tbState.active && d.ui_type==='text'){
-                    // 公堂散堂后的普通文字（消耗时间提示）→ 已由 closeTribunal 处理，忽略重复渲染
+                    // 公堂散堂后的普通文字 → 已由 closeTribunal 处理，忽略重复渲染
                 } else {
                     renderUI();
                 }
@@ -1442,8 +1370,7 @@
             else if(opt.action_type==='TRIBUNAL_EXECUTE')p.user_input=`CMD_TRIBUNAL_EXECUTE:${opt.payload}`;
             else if(opt.action_type==='SHOW_TRIBUNAL_MENU')p.user_input='CMD_SHOW_TRIBUNAL_MENU';
             else if(opt.action_type==='TRIBUNAL_TOPIC')p.user_input=`CMD_TRIBUNAL_TOPIC:${opt.payload}`;
-            else if(opt.action_type==='TRIBUNAL_REDIRECT')p.user_input=`CMD_TRIBUNAL_REDIRECT:${opt.payload}`;
-            else if(opt.action_type==='TRIBUNAL_CLOSE'){send({user_input:'CMD_TRIBUNAL_CLOSE'});closeTribunal();return;}
+            else if(opt.action_type==='TRIBUNAL_CLOSE'){closeTribunal();return;}
             else if(opt.action_type==='INSPECT_CONDITIONAL')p.user_input=`CMD_INSPECT_CONDITIONAL:${opt.payload}`;
             else if(opt.action_type==='OBSERVE_NPC_DETAIL')p.user_input=`CMD_OBSERVE_NPC_DETAIL:${opt.payload}`;
             else if(opt.action_type==='ACCEPT_BRIBE')p.user_input='CMD_ACCEPT_BRIBE';
@@ -1566,7 +1493,6 @@
             active: false,
             focusNpc: null,       // 当前被质问的 NPC 名
             activeClue: null,     // 当前呈堂证物 payload
-            countdownTimers: [],  // 转向倒计时 timer id
         };
 
         /* 开启公堂层 */
@@ -1590,9 +1516,7 @@
             tbState.active = false;
             tbState.focusNpc = null;
             tbState.activeClue = null;
-            _tbClearCountdowns();
-            // 关闭时通知后端（消耗时间）—— 只在已经开始审问后才发
-            // 实际的散堂 CMD 由底部"散堂"按钮或 TRIBUNAL_CLOSE action 发送
+            send({user_input:'CMD_TRIBUNAL_CLOSE'});
             renderUI();
         }
 
@@ -1609,7 +1533,6 @@
                 wrap.innerHTML = `
                     <div class="tb-avatar-wrap" id="tb-av-${npcId}" onclick="_tbClickAvatar('${npcId}','${name}')">
                         ${svg}
-                        <div class="tb-bubble" id="tb-bub-${npcId}"></div>
                     </div>
                     <div class="tb-name">${name}</div>`;
                 bar.appendChild(wrap);
@@ -1643,147 +1566,63 @@
         /* 后端返回 tribunal_mode 时调用此函数渲染 */
         function tbHandleResponse(replyText, uiOptions){
             if(!tbState.active) return;
-            _tbClearCountdowns();
 
-            // 解析焦点回复 vs 旁听者反应（约定："\n\n旁听者反应：\n" 分割）
-            const splitMark = '旁听者反应：';
-            const splitIdx = replyText.indexOf(splitMark);
-            const focusPart = splitIdx > -1 ? replyText.slice(0, splitIdx).trim() : replyText.trim();
-            const reactionPart = splitIdx > -1 ? replyText.slice(splitIdx + splitMark.length).trim() : '';
-
-            // 渲染焦点发言到对话区
             const dialogue = document.getElementById('tb-dialogue');
-            const speech = document.createElement('div');
-            speech.className = 'tb-speech';
-            // 去掉 **名字：** 前缀，单独显示
-            const nameMatch = focusPart.match(/^\*\*(.+?)：\*\*\s*/);
+            const text = (replyText || '').trim();
+            if(!text) return;
+
+            // 解析 **Name：** 前缀提取说话者名字
+            const nameMatch = text.match(/^\*\*(.+?)：\*\*\s*/);
             const speakerName = nameMatch ? nameMatch[1] : (tbState.focusNpc || '');
-            const speechText = nameMatch ? focusPart.slice(nameMatch[0].length) : focusPart;
-            speech.innerHTML = `<div class="tb-speech-who">${escapeHtml(speakerName)}</div>
-                <div class="tb-speech-text">${escapeHtml(speechText).replace(/\n/g,'<br>')}</div>`;
-            dialogue.appendChild(speech);
-            dialogue.scrollTop = dialogue.scrollHeight;
+            const speechText = nameMatch ? text.slice(nameMatch[0].length) : text;
 
-            // 解析旁听者反应行
-            const reactionLines = reactionPart.split('\n').map(l=>l.trim()).filter(Boolean);
-            // 格式：【名字】反应文字
-            const reactions = reactionLines.map(line=>{
-                const m = line.match(/【(.+?)】(.+)/);
-                return m ? {name:m[1], text:m[2]} : null;
-            }).filter(Boolean);
-
-            // 取出 REDIRECT options（带 suspicion_shift 信号的转向按钮）
-            const redirectOpts = uiOptions.filter(o=>o.action_type==='TRIBUNAL_REDIRECT');
-
-            // 对每个旁听者：更新头像状态 + 填充气泡
-            const COUNTDOWN_MS = 5000;
-            reactions.forEach(r => {
-                const id = TRIBUNAL_NPC_IDS[r.name];
-                if(!id) return;
-                const av = document.getElementById(`tb-av-${id}`);
-                const bub = document.getElementById(`tb-bub-${id}`);
-                if(!av||!bub) return;
-
-                // 判断 suspicion_shift（从对应的 redirect option 取）
-                const rOpt = redirectOpts.find(o=>o.payload===id);
-                const shift = rOpt ? (rOpt.label.startsWith('⚠') ? 'increase' : rOpt.label.startsWith('✓') ? 'decrease' : 'none') : 'none';
-
-                av.classList.remove('reacting','calm-react');
-                if(shift==='increase') av.classList.add('reacting');
-                else if(shift==='decrease') av.classList.add('calm-react');
-
-                // 气泡内容
-                const icon = shift==='increase'?'⚠':shift==='decrease'?'✓':'○';
-                const iconColor = shift==='increase'?'var(--cinnabar)':shift==='decrease'?'var(--jade)':'var(--ink-light)';
-
-                let bubHtml = `<div class="tb-bubble-reaction">
-                    <span class="rb-icon" style="color:${iconColor}">${icon}</span>${escapeHtml(r.text)}
-                </div>`;
-
-                // 如果该人有转向按钮，加上倒计时按钮
-                if(rOpt){
-                    bubHtml += `<button class="tb-redirect-btn" id="tb-rbtn-${id}"
-                        onclick="_tbRedirect('${id}','${r.name}',this)">
-                        转向追问
-                        <div class="tb-countdown" id="tb-cd-${id}" style="width:100%"></div>
-                    </button>`;
-                }
-                bub.innerHTML = bubHtml;
-                bub.classList.add('visible');
-
-                // 启动5秒倒计时
-                if(rOpt){
-                    requestAnimationFrame(()=>{
-                        requestAnimationFrame(()=>{
-                            const cd = document.getElementById(`tb-cd-${id}`);
-                            if(cd){
-                                cd.style.transition=`width ${COUNTDOWN_MS}ms linear`;
-                                cd.style.width='0%';
-                            }
-                        });
-                    });
-                    const timer = setTimeout(()=>{
-                        const rbtn = document.getElementById(`tb-rbtn-${id}`);
-                        if(rbtn) rbtn.classList.add('expired');
-                    }, COUNTDOWN_MS);
-                    tbState.countdownTimers.push(timer);
-                }
-            });
-
-            // 无旁听反应时，隐藏所有气泡
-            if(!reactions.length){
-                TRIBUNAL_NPCS.forEach(n=>{
-                    const id=TRIBUNAL_NPC_IDS[n];
-                    document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
-                });
+            if(speakerName){
+                // NPC 发言：渲染为对话气泡
+                const speech = document.createElement('div');
+                speech.className = 'tb-speech';
+                speech.innerHTML = `<div class="tb-speech-who">${escapeHtml(speakerName)}</div>
+                    <div class="tb-speech-text">${escapeHtml(speechText).replace(/\n/g,'<br>')}</div>`;
+                dialogue.appendChild(speech);
+            } else {
+                // 系统提示（如选证物后的提示文本）
+                const hint = document.createElement('div');
+                hint.style.cssText = 'text-align:center;color:var(--ink-light);font-size:12px;letter-spacing:2px;padding:8px 0;';
+                hint.textContent = speechText;
+                dialogue.appendChild(hint);
             }
-        }
-
-        /* 转向追问 */
-        function _tbRedirect(npcId, npcName, btnEl){
-            // 立即锁定所有转向按钮
-            document.querySelectorAll('.tb-redirect-btn').forEach(b=>b.classList.add('expired'));
-            _tbClearCountdowns();
-            tbState.focusNpc = npcName;
-            // 切换高亮
-            TRIBUNAL_NPCS.forEach(n=>{
-                const id=TRIBUNAL_NPC_IDS[n];
-                document.getElementById(`tb-av-${id}`)?.classList.remove('focused','reacting','calm-react');
-                document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
-            });
-            document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
-            send({user_input:`CMD_TRIBUNAL_REDIRECT:${npcId}`});
-        }
-
-        /* 清除所有倒计时 */
-        function _tbClearCountdowns(){
-            tbState.countdownTimers.forEach(t=>clearTimeout(t));
-            tbState.countdownTimers=[];
+            dialogue.scrollTop = dialogue.scrollHeight;
         }
 
         /* 点击头像（已选证物时发起质问） */
         function _tbClickAvatar(npcId, npcName){
             if(!tbState.activeClue){
-                // 未选证物：仅切换气泡显示（若有）
-                const bub = document.getElementById(`tb-bub-${npcId}`);
-                if(bub && bub.innerHTML){
-                    const isVisible = bub.classList.contains('visible');
-                    document.querySelectorAll('.tb-bubble').forEach(b=>b.classList.remove('visible'));
-                    if(!isVisible) bub.classList.add('visible');
-                }
+                // 未选证物：在对话区显示提示
+                const dialogue = document.getElementById('tb-dialogue');
+                const hint = document.createElement('div');
+                hint.style.cssText = 'text-align:center;color:var(--ink-light);font-size:12px;padding:6px 0;';
+                hint.textContent = '请先在下方选择呈堂证物';
+                dialogue.appendChild(hint);
+                dialogue.scrollTop = dialogue.scrollHeight;
                 return;
             }
-            // 已选证物 → 发起质问
             tbState.focusNpc = npcName;
-            _tbClearCountdowns();
+            // 头像高亮
             TRIBUNAL_NPCS.forEach(n=>{
                 const id=TRIBUNAL_NPC_IDS[n];
-                document.getElementById(`tb-av-${id}`)?.classList.remove('focused','reacting','calm-react');
-                document.getElementById(`tb-bub-${id}`)?.classList.remove('visible');
+                document.getElementById(`tb-av-${id}`)?.classList.remove('focused');
+                const el=document.getElementById(`tb-npc-${id}`)?.querySelector('.tb-name');
+                if(el) el.style.color='';
             });
             document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
-            const nameEl = document.getElementById(`tb-npc-${npcId}`)?.querySelector('.tb-name');
+            const nameEl=document.getElementById(`tb-npc-${npcId}`)?.querySelector('.tb-name');
             if(nameEl) nameEl.style.color='var(--gold)';
+            // 对话区添加行动提示
+            const dialogue = document.getElementById('tb-dialogue');
+            const action = document.createElement('div');
+            action.style.cssText = 'text-align:center;color:var(--ink-light);font-size:12px;padding:8px 0;border-bottom:0.5px solid var(--paper-dark);';
+            action.textContent = `— 你向${npcName}出示了证物 —`;
+            dialogue.appendChild(action);
+            dialogue.scrollTop = dialogue.scrollHeight;
             send({user_input:`CMD_TRIBUNAL_EXECUTE:${npcId}`});
         }
         // ===== 状态栏更新 =====

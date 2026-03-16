@@ -683,76 +683,7 @@ async def handle_search(user_input, request, current_state, model_id):
             result["reply"] = "指令错误。"
         result["done"] = True
     
-    elif user_input.startswith("CMD_INSPECT"):
-        try:
-            _, room_name, furniture_name = user_input.split(":")
-            room_data = ROOM_DB.get(room_name)
-            d_state = current_state["dynamic_state"]
-
-            inspect_count = d_state.get("room_inspect_count", 0) + 1
-            d_state["room_inspect_count"] = inspect_count
-            if inspect_count % 2 == 0:
-                advance_time = _get("advance_time")
-                advance_time(current_state)
-                time_idx = d_state["time_idx"]
-                TIME_CYCLES = _get("TIME_CYCLES")
-                result["reply"] = f"⏳ 你搜查了一阵，时间流逝……（当前：第{d_state.get('day')}日 {TIME_CYCLES[time_idx]}）\n\n"
-            else:
-                result["reply"] = ""
-
-            clue_id = room_data["furniture_map"].get(furniture_name)
-            custom_text = room_data.get("inspect_texts", {}).get(furniture_name)
-            result["sender"] = "调查结果"
-            result["ui_type"] = "room_view"
-            for furniture in room_data["furniture_list"]:
-                result["ui_options"].append(UIAction(label=f"▸ 检查{furniture}", action_type="INSPECT", payload=f"{room_name}:{furniture}"))
-            result["ui_options"].append(UIAction(label="▸ 退出搜查", action_type="EXIT", payload="SEARCH"))
-            if custom_text:
-                result["reply"] += custom_text
-            elif clue_id:
-                clue = objective_clues_db.get(clue_id)
-                if clue:
-                    difficulty = clue.get("search_difficulty", 1)
-                    # ── 信任试探惩罚：房主在场监视时搜查更难 ──
-                    penalty = d_state.get("search_penalty", {}).get(room_name, 0)
-                    difficulty = difficulty + penalty
-                    
-                    # 记录搜查次数
-                    search_counts = d_state.setdefault("search_counts", {})
-                    furniture_key = f"{room_name}:{furniture_name}"
-                    search_counts[furniture_key] = search_counts.get(furniture_key, 0) + 1
-                    current_count = search_counts[furniture_key]
-                    
-                    if current_count >= difficulty:
-                        # 找到了！
-                        result["reply"] += f"你在【{furniture_name}】处发现了：\n\n▪ **{clue['name']}**\n{clue['description']}"
-                        if clue['id'] not in d_state["inventory"]["clues_collected"]:
-                            d_state["inventory"]["clues_collected"].append(clue['id'])
-                            # ── 推断检查 ──
-                            from inference_engine import check_new_inferences, format_inference_message
-                            new_infs = check_new_inferences(d_state)
-                            if new_infs:
-                                inf_texts = [format_inference_message(i) for i in new_infs]
-                                result["reply"] += "\n\n" + "\n\n".join(inf_texts)
-                    else:
-                        # 还没找到，给提示
-                        hints = {
-                            1: "你仔细翻找了一番，觉得这里似乎还藏着什么……",
-                            2: "你更加用力地搜查，手指碰到了什么东西的边缘……",
-                        }
-                        result["reply"] += hints.get(current_count, "你继续搜查，似乎快要发现什么了……")
-                else:
-                    result["reply"] = "什么也没发现。"
-            else:
-                if room_name == "后院" and furniture_name == "泥地":
-                    result["reply"] = "泥地上脚印杂乱（发现线索：混乱的足迹）。此外，尸体也横陈于此。"
-                else:
-                    result["reply"] = "只是普通的杂物。"
-        except ValueError:
-            result["reply"] = "指令错误。"
-        result["done"] = True
-
-    # ── 条件线索触发 ──
+    # ── 条件线索触发（必须在 CMD_INSPECT 之前，避免 startswith 误拦截）──
     elif user_input.startswith("CMD_INSPECT_CONDITIONAL"):
         try:
             _, room_name, cond_clue_id = user_input.split(":", 2)
@@ -812,6 +743,75 @@ async def handle_search(user_input, request, current_state, model_id):
                 # 失败（黑暗/时间不对）：反馈文本，不消耗行动点
                 result["reply"] = text
 
+        except ValueError:
+            result["reply"] = "指令错误。"
+        result["done"] = True
+
+    elif user_input.startswith("CMD_INSPECT"):
+        try:
+            _, room_name, furniture_name = user_input.split(":")
+            room_data = ROOM_DB.get(room_name)
+            d_state = current_state["dynamic_state"]
+
+            inspect_count = d_state.get("room_inspect_count", 0) + 1
+            d_state["room_inspect_count"] = inspect_count
+            if inspect_count % 2 == 0:
+                advance_time = _get("advance_time")
+                advance_time(current_state)
+                time_idx = d_state["time_idx"]
+                TIME_CYCLES = _get("TIME_CYCLES")
+                result["reply"] = f"⏳ 你搜查了一阵，时间流逝……（当前：第{d_state.get('day')}日 {TIME_CYCLES[time_idx]}）\n\n"
+            else:
+                result["reply"] = ""
+
+            clue_id = room_data["furniture_map"].get(furniture_name)
+            custom_text = room_data.get("inspect_texts", {}).get(furniture_name)
+            result["sender"] = "调查结果"
+            result["ui_type"] = "room_view"
+            for furniture in room_data["furniture_list"]:
+                result["ui_options"].append(UIAction(label=f"▸ 检查{furniture}", action_type="INSPECT", payload=f"{room_name}:{furniture}"))
+            result["ui_options"].append(UIAction(label="▸ 退出搜查", action_type="EXIT", payload="SEARCH"))
+            if custom_text:
+                result["reply"] += custom_text
+            elif clue_id:
+                clue = objective_clues_db.get(clue_id)
+                if clue:
+                    difficulty = clue.get("search_difficulty", 1)
+                    # ── 信任试探惩罚：房主在场监视时搜查更难 ──
+                    penalty = d_state.get("search_penalty", {}).get(room_name, 0)
+                    difficulty = difficulty + penalty
+
+                    # 记录搜查次数
+                    search_counts = d_state.setdefault("search_counts", {})
+                    furniture_key = f"{room_name}:{furniture_name}"
+                    search_counts[furniture_key] = search_counts.get(furniture_key, 0) + 1
+                    current_count = search_counts[furniture_key]
+
+                    if current_count >= difficulty:
+                        # 找到了！
+                        result["reply"] += f"你在【{furniture_name}】处发现了：\n\n▪ **{clue['name']}**\n{clue['description']}"
+                        if clue['id'] not in d_state["inventory"]["clues_collected"]:
+                            d_state["inventory"]["clues_collected"].append(clue['id'])
+                            # ── 推断检查 ──
+                            from inference_engine import check_new_inferences, format_inference_message
+                            new_infs = check_new_inferences(d_state)
+                            if new_infs:
+                                inf_texts = [format_inference_message(i) for i in new_infs]
+                                result["reply"] += "\n\n" + "\n\n".join(inf_texts)
+                    else:
+                        # 还没找到，给提示
+                        hints = {
+                            1: "你仔细翻找了一番，觉得这里似乎还藏着什么……",
+                            2: "你更加用力地搜查，手指碰到了什么东西的边缘……",
+                        }
+                        result["reply"] += hints.get(current_count, "你继续搜查，似乎快要发现什么了……")
+                else:
+                    result["reply"] = "什么也没发现。"
+            else:
+                if room_name == "后院" and furniture_name == "泥地":
+                    result["reply"] = "泥地上脚印杂乱（发现线索：混乱的足迹）。此外，尸体也横陈于此。"
+                else:
+                    result["reply"] = "只是普通的杂物。"
         except ValueError:
             result["reply"] = "指令错误。"
         result["done"] = True
@@ -1066,8 +1066,7 @@ async def handle_tribunal(user_input, request, current_state, model_id):
 
         result["reply"] = (
             f"◆ **召集公堂**（已用 {used}/{MAX_TRIBUNALS} 次）\n\n"
-            "所有人将聚集大堂，你当众出示一件证物并选择首先质问的对象。\n"
-            "旁听者会产生可见反应，你可在 5 秒内转向追问。\n"
+            "所有人将聚集大堂，你当众出示证物并质问在场之人。\n"
             "※ 结束公堂后消耗 2 个时辰\n\n"
             "请选择呈堂证物："
         )
@@ -1088,17 +1087,8 @@ async def handle_tribunal(user_input, request, current_state, model_id):
         clue_id = user_input.split(":", 1)[1]
         d_state["temp_tribunal_clue"] = clue_id
         clue = objective_clues_db.get(clue_id, {})
-        result["reply"] = (
-            f"证物【{clue.get('name', '未知')}】已置于桌上。\n"
-            "所有人目光汇聚——你首先质问谁？"
-        )
-        result["ui_type"] = "select_npc"
-        for npc in NPC_LIST:
-            result["ui_options"].append(UIAction(
-                label=f"» {npc['name']}",
-                action_type="TRIBUNAL_EXECUTE",
-                payload=npc["id"]
-            ))
+        result["reply"] = f"证物【{clue.get('name', '未知')}】已置于桌上。请点击上方头像选择质问对象。"
+        result["ui_type"] = "tribunal_mode"
         result["done"] = True
 
     # ── 执行全员公堂质问 ─────────────────────────────────────────────────
@@ -1200,40 +1190,16 @@ async def handle_tribunal(user_input, request, current_state, model_id):
         reactions = parsed.get("bystander_reactions", [])
         redirect_hint = parsed.get("redirect_hint", "")
 
-        # ── 组合显示文本 ──
-        bystander_text = ""
-        if reactions:
-            lines = [f"  【{r['name']}】{r['reaction']}" for r in reactions]
-            bystander_text = "\n\n旁听者反应：\n" + "\n".join(lines)
-
-        result["reply"] = f"**{focus_name}：** {focus_reply}{bystander_text}"
-        result["sender"] = "全员公堂"
+        # ── 组合显示文本（只保留焦点 NPC 回复）──
+        result["reply"] = f"**{focus_name}：** {focus_reply}"
+        result["sender"] = focus_name
         result["ui_type"] = "tribunal_mode"
 
-        # ── 转向按钮：每个旁听者一个，含 suspicion_shift 信号 ──
-        for r in reactions:
-            shift = r.get("suspicion_shift", "none")
-            icon = "⚠ " if shift == "increase" else ("✓ " if shift == "decrease" else "» ")
-            npc_match = next((n["id"] for n in NPC_LIST if n["name"] == r["name"]), None)
-            if npc_match:
-                result["ui_options"].append(UIAction(
-                    label=f"{icon}转向追问 {r['name']}",
-                    action_type="TRIBUNAL_REDIRECT",
-                    payload=npc_match
-                ))
         result["ui_options"].append(UIAction(
             label="◆ 结束公堂", action_type="TRIBUNAL_CLOSE", payload="CLOSE"
         ))
 
-        # ── 保存本轮公堂会话（REDIRECT 时复用）──
-        d_state["tribunal_session"] = {
-            "clue_id": clue_id,
-            "focus_npc_id": focus_npc_id,
-            "reactions": reactions,
-            "redirect_hint": redirect_hint,
-        }
-
-        # ── 信任度调整 ──
+        # ── 信任度调整（静默执行）──
         adjust_trust(d_state, focus_npc_id, "tribunal_accused")
         trust_map = d_state.setdefault("npc_trust", {})
         for r in reactions:
@@ -1245,18 +1211,6 @@ async def handle_tribunal(user_input, request, current_state, model_id):
                     trust_map[npc_match] = min(100, trust_map.get(npc_match, 50) + 5)
 
         result["done"] = True
-
-    # ── 转向追问（5 秒内按下转向按钮）────────────────────────────────────
-    elif user_input.startswith("CMD_TRIBUNAL_REDIRECT:"):
-        new_focus_id = user_input.split(":", 1)[1]
-        # 沿用当前公堂会话的线索，切换焦点后复用 EXECUTE 路径
-        session = d_state.get("tribunal_session", {})
-        clue_id = session.get("clue_id", d_state.get("temp_tribunal_clue", ""))
-        d_state["temp_tribunal_clue"] = clue_id
-        return await handle_tribunal(
-            f"CMD_TRIBUNAL_EXECUTE:{new_focus_id}",
-            request, current_state, model_id
-        )
 
     # ── 结束公堂：消耗 2 个时辰 ─────────────────────────────────────────
     elif user_input == "CMD_TRIBUNAL_CLOSE":

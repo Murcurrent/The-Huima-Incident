@@ -3,3 +3,4 @@ tokens.json
 token_bindings.json
 secret.key
 __pycache__/
+.claude/
