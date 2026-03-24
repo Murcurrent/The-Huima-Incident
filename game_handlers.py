@@ -23,6 +23,21 @@ def init(context: dict):
 def _get(key):
     return _ctx[key]
 
+def _visible_furniture(room_data, d_state, room_name):
+    """返回当前应显示的普通家具列表（排除 conditional_furniture 和未解锁的 hidden_until）"""
+    cond_set = room_data.get("conditional_furniture", set())
+    hidden_until = room_data.get("hidden_until", {})
+    search_counts = d_state.get("search_counts", {})
+    result = []
+    for f in room_data["furniture_list"]:
+        if f in cond_set:
+            continue
+        prereq = hidden_until.get(f)
+        if prereq and search_counts.get(f"{room_name}:{prereq}", 0) == 0:
+            continue
+        result.append(f)
+    return result
+
 #trust rules system
 TRUST_RULES = {
     # 正面行为（加信任）
@@ -649,8 +664,8 @@ async def handle_search(user_input, request, current_state, model_id):
             result["reply"] += f"你进入了【{target_room}】。"
             result["ui_type"] = "room_view"
 
-            # 普通家具按钮
-            for furniture in room_data["furniture_list"]:
+            # 普通家具按钮（排除条件家具和未解锁家具）
+            for furniture in _visible_furniture(room_data, d_state, target_room):
                 result["ui_options"].append(UIAction(
                     label=f"▸ 检查{furniture}",
                     action_type="INSPECT",
@@ -704,9 +719,9 @@ async def handle_search(user_input, request, current_state, model_id):
             result["sender"] = "调查结果"
             result["ui_type"] = "room_view"
 
-            # 重建房间按钮
+            # 重建房间按钮（排除条件家具和未解锁家具）
             room_data = ROOM_DB.get(room_name, {})
-            for furniture in room_data.get("furniture_list", []):
+            for furniture in _visible_furniture(room_data, d_state, room_name):
                 result["ui_options"].append(UIAction(
                     label=f"▸ 检查{furniture}",
                     action_type="INSPECT",
@@ -766,10 +781,32 @@ async def handle_search(user_input, request, current_state, model_id):
 
             clue_id = room_data["furniture_map"].get(furniture_name)
             custom_text = room_data.get("inspect_texts", {}).get(furniture_name)
+
+            # 记录搜查次数（所有家具，不仅是有线索的）
+            search_counts = d_state.setdefault("search_counts", {})
+            furniture_key = f"{room_name}:{furniture_name}"
+            search_counts[furniture_key] = search_counts.get(furniture_key, 0) + 1
+
             result["sender"] = "调查结果"
             result["ui_type"] = "room_view"
-            for furniture in room_data["furniture_list"]:
+            # 按钮列表在 search_counts 更新后构建，以反映新解锁的家具
+            for furniture in _visible_furniture(room_data, d_state, room_name):
                 result["ui_options"].append(UIAction(label=f"▸ 检查{furniture}", action_type="INSPECT", payload=f"{room_name}:{furniture}"))
+            # 条件线索按钮
+            TIME_CYCLES = _get("TIME_CYCLES")
+            current_time = TIME_CYCLES[d_state["time_idx"]]
+            cond_clues = get_available_conditional_clues(
+                d_state, room_name, current_time, context="search"
+            )
+            for cc in cond_clues:
+                label = f"◈ {cc['button_text']}"
+                if not cc["light_ok"]:
+                    label += "（光线不足）"
+                result["ui_options"].append(UIAction(
+                    label=label,
+                    action_type="INSPECT_CONDITIONAL",
+                    payload=f"{room_name}:{cc['clue_id']}"
+                ))
             result["ui_options"].append(UIAction(label="▸ 退出搜查", action_type="EXIT", payload="SEARCH"))
             if custom_text:
                 result["reply"] += custom_text
@@ -781,10 +818,6 @@ async def handle_search(user_input, request, current_state, model_id):
                     penalty = d_state.get("search_penalty", {}).get(room_name, 0)
                     difficulty = difficulty + penalty
 
-                    # 记录搜查次数
-                    search_counts = d_state.setdefault("search_counts", {})
-                    furniture_key = f"{room_name}:{furniture_name}"
-                    search_counts[furniture_key] = search_counts.get(furniture_key, 0) + 1
                     current_count = search_counts[furniture_key]
 
                     if current_count >= difficulty:

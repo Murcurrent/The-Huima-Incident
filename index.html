@@ -1089,23 +1089,14 @@
                     history.appendChild(sDiv);
                     history.scrollTop=history.scrollHeight;
                 }
-                // tribunal_mode 响应跳过主聊天打字机，直接路由到公堂层
-                if(d.ui_type==='tribunal_mode'){
-                    _afterType();
-                } else if(d.reply_text){
+                if(d.reply_text){
                     addMsg(d.reply_text,'system',d.sender_name, _afterType);
                 } else {
                     _afterType();
                 }
 
                 function _afterType(){
-                if(d.ui_type==='tribunal_mode'){
-                    tbHandleResponse(d.reply_text||'', d.ui_options||[]);
-                } else if(tbState.active && d.ui_type==='text'){
-                    // 公堂散堂后的普通文字 → 已由 closeTribunal 处理，忽略重复渲染
-                } else {
                     renderUI();
-                }
                 }
             }catch(e){if(ld.parentNode)history.removeChild(ld);alert("网络连接错误")}
         }
@@ -1257,14 +1248,7 @@
         // ===== UI 渲染 =====
         function renderUI(){
             controls.innerHTML='';
-            // 公堂：若后端返回 select_clue 且来源是 TRIBUNAL_TOPIC 或 SHOW_TRIBUNAL_MENU
-            // 用 state 里的 uiOptions 判断——如果所有 action 都是 TRIBUNAL_EXECUTE，则是进入公堂后的「选首问对象」提示，不需要再处理（由头像点击驱动）
-            // 如果 action_type 全是 TRIBUNAL_TOPIC，则是「选证物」→ 开启公堂层
-            if(state.uiType==='select_clue' && state.uiOptions.length && state.uiOptions.every(o=>o.action_type==='TRIBUNAL_TOPIC')){
-                openTribunal(state.uiOptions);
-                return;
-            }
-            // tribunal_mode 由 send() 直接处理，此处跳过
+            // tribunal_mode 由公堂层自行处理，跳过
             if(state.uiType==='tribunal_mode') return;
             if(['select_room','select_npc','select_clue'].includes(state.uiType)){
                 const g=document.createElement('div');g.className='card-grid';
@@ -1291,9 +1275,9 @@
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_SEARCH_MENU'})">${ICONS.search}搜查现场</button>
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_TALK_MENU'})">${ICONS.talk}盘问众人</button>
                     <button class="text-btn" onclick="send({user_input:'CMD_SHOW_CONFRONT_MENU'})">${ICONS.confront}出示证据</button>
-                    <button class="text-btn" onclick="send({user_input:'系统菜单'})">${ICONS.dossier}查看卷宗</button>
+                    <button class="text-btn" onclick="send({user_input:'CMD_SHOW_RECALL_MENU'})">${ICONS.dossier}查看卷宗</button>
                     <button class="text-btn" onclick="openTimeline()">${ICO.scroll} 重建时间线</button>
-                    <button class="text-btn" onclick="send({user_input:'CMD_SHOW_TRIBUNAL_MENU'})">${ICONS.tribunal}召集公堂</button>
+                    <button class="text-btn" onclick="openTribunal()">${ICONS.tribunal}召集公堂</button>
                     <button class="text-btn red" onclick="send({user_input:'CMD_SHOW_ACCUSE_MENU'})">${ICONS.accuse}指认凶手</button>`;
             }
             else if(state.uiType==='room_view'){
@@ -1310,6 +1294,12 @@
                 controls.appendChild(g);
                 const ex=state.uiOptions.find(o=>o.action_type==='EXIT');
                 if(ex){const b=document.createElement('button');b.className='text-btn';b.style.marginTop='8px';b.innerHTML=ICO.door+' 退出搜查';b.onclick=()=>handleAction(ex);controls.appendChild(b)}
+            }
+            else if(state.uiType==='recall_menu'){
+                state.uiOptions.forEach(o=>{
+                    const b=document.createElement('button');b.className='text-btn';
+                    b.innerText=o.label;b.onclick=()=>handleAction(o);controls.appendChild(b);
+                });
             }
             else if(state.uiType==='chat_mode'){
                 // 观察类按钮行（OBSERVE_NPC_DETAIL，放输入框上方）
@@ -1367,10 +1357,10 @@
             else if(opt.action_type==='RELOAD'){location.reload();return;}
             else if(opt.action_type==='TRIBUNAL_SELECT_A')p.user_input=`CMD_TRIBUNAL_SELECT_A:${opt.payload}`;
             else if(opt.action_type==='TRIBUNAL_SELECT_B')p.user_input=`CMD_TRIBUNAL_SELECT_B:${opt.payload}`;
-            else if(opt.action_type==='TRIBUNAL_EXECUTE')p.user_input=`CMD_TRIBUNAL_EXECUTE:${opt.payload}`;
-            else if(opt.action_type==='SHOW_TRIBUNAL_MENU')p.user_input='CMD_SHOW_TRIBUNAL_MENU';
-            else if(opt.action_type==='TRIBUNAL_TOPIC')p.user_input=`CMD_TRIBUNAL_TOPIC:${opt.payload}`;
-            else if(opt.action_type==='TRIBUNAL_CLOSE'){closeTribunal();return;}
+            else if(opt.action_type==='RECALL_CLUES')p.user_input='CMD_RECALL_CLUES';
+            else if(opt.action_type==='RECALL_INFERENCES')p.user_input='CMD_RECALL_INFERENCES';
+            else if(opt.action_type==='RECALL_TIMELINE')p.user_input='CMD_RECALL_TIMELINE';
+            else if(opt.action_type==='RECALL_BACK')p.user_input='CMD_SHOW_RECALL_MENU';
             else if(opt.action_type==='INSPECT_CONDITIONAL')p.user_input=`CMD_INSPECT_CONDITIONAL:${opt.payload}`;
             else if(opt.action_type==='OBSERVE_NPC_DETAIL')p.user_input=`CMD_OBSERVE_NPC_DETAIL:${opt.payload}`;
             else if(opt.action_type==='ACCEPT_BRIBE')p.user_input='CMD_ACCEPT_BRIBE';
@@ -1495,42 +1485,114 @@
             activeClue: null,     // 当前呈堂证物 payload
         };
 
-        /* 开启公堂层 */
-        function openTribunal(clueOptions){
-            const layer = document.getElementById('tribunal-layer');
-            layer.classList.add('active');
-            tbState.active = true;
+        /* ── 公堂专用通信（不经过主聊天 send）── */
+        async function tbSend(cmd){
+            const code=localStorage.getItem('invite_code'),did=localStorage.getItem('device_id');
+            if(!code) return null;
+            // 对话区 loading
+            const dialogue=document.getElementById('tb-dialogue');
+            const ld=document.createElement('div');
+            ld.style.cssText='text-align:center;color:var(--ink-light);font-size:13px;padding:8px 0;';
+            ld.textContent='……';
+            dialogue.appendChild(ld);
+            dialogue.scrollTop=dialogue.scrollHeight;
+            try{
+                const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Access-Token':code,'X-Device-Id':did},body:JSON.stringify({user_input:cmd,encrypted_state:state.token,npc_id:null,model_id:state.modelId,confront_clue_id:null})});
+                if(ld.parentNode) ld.remove();
+                if(r.status===403||r.status===401){alert("验证失效");location.reload();return null}
+                const d=await r.json();
+                // 同步加密状态
+                state.token=d.new_encrypted_state;
+                if(d.status_info) updateStatusBar(d.status_info);
+                return d;
+            }catch(e){
+                if(ld.parentNode) ld.remove();
+                _tbHint('网络连接错误');
+                return null;
+            }
+        }
 
-            // 渲染头像栏
+        /* 在对话区添加居中提示 */
+        function _tbHint(text){
+            const dialogue=document.getElementById('tb-dialogue');
+            const hint=document.createElement('div');
+            hint.style.cssText='text-align:center;color:var(--ink-light);font-size:12px;letter-spacing:2px;padding:8px 0;';
+            hint.textContent=text;
+            dialogue.appendChild(hint);
+            dialogue.scrollTop=dialogue.scrollHeight;
+        }
+
+        /* 在对话区添加 NPC 发言 */
+        function _tbAddSpeech(replyText){
+            const dialogue=document.getElementById('tb-dialogue');
+            const text=(replyText||'').trim();
+            if(!text) return;
+            const nameMatch=text.match(/^\*\*(.+?)：\*\*\s*/);
+            const speakerName=nameMatch?nameMatch[1]:(tbState.focusNpc||'');
+            const speechText=nameMatch?text.slice(nameMatch[0].length):text;
+            if(speakerName){
+                const speech=document.createElement('div');
+                speech.className='tb-speech';
+                speech.innerHTML=`<div class="tb-speech-who">${escapeHtml(speakerName)}</div>
+                    <div class="tb-speech-text">${escapeHtml(speechText).replace(/\n/g,'<br>')}</div>`;
+                dialogue.appendChild(speech);
+            } else {
+                _tbHint(speechText);
+            }
+            dialogue.scrollTop=dialogue.scrollHeight;
+        }
+
+        /* 开启公堂层 */
+        async function openTribunal(){
+            // 先请求后端获取菜单（校验次数 + 获取线索列表）
+            const d=await tbSend('CMD_SHOW_TRIBUNAL_MENU');
+            if(!d) return;
+            // 无线索或次数用尽：在主聊天显示提示
+            if(!d.ui_options||!d.ui_options.length||!d.ui_options.some(o=>o.action_type==='TRIBUNAL_TOPIC')){
+                addMsg(d.reply_text||'无法召集公堂','system',d.sender_name);
+                state.uiType=d.ui_type||'text';state.uiOptions=d.ui_options||[];
+                renderUI();
+                return;
+            }
+            // 提取证物选项（过滤掉取消按钮）
+            const clueOptions=d.ui_options.filter(o=>o.action_type==='TRIBUNAL_TOPIC');
+            const layer=document.getElementById('tribunal-layer');
+            layer.classList.add('active');
+            tbState.active=true;
+            tbState.focusNpc=null;
+            tbState.activeClue=null;
             _tbRenderAvatars();
-            // 渲染证物按钮
             _tbRenderClues(clueOptions);
-            // 清空对话区
-            document.getElementById('tb-dialogue').innerHTML = '';
+            document.getElementById('tb-dialogue').innerHTML='';
+            _tbHint('选择下方证物，点击头像质问');
         }
 
         /* 关闭公堂层 */
-        function closeTribunal(){
-            const layer = document.getElementById('tribunal-layer');
+        async function closeTribunal(){
+            // 先通知后端消耗时间（layer 仍可见，可显示 loading）
+            tbState.active=false;
+            const d=await tbSend('CMD_TRIBUNAL_CLOSE');
+            // 关闭 UI
+            const layer=document.getElementById('tribunal-layer');
             layer.classList.remove('active');
-            tbState.active = false;
-            tbState.focusNpc = null;
-            tbState.activeClue = null;
-            send({user_input:'CMD_TRIBUNAL_CLOSE'});
+            tbState.focusNpc=null;
+            tbState.activeClue=null;
+            if(d&&d.reply_text) addMsg(d.reply_text,'system',d.sender_name);
+            state.uiType='text';state.uiOptions=[];
             renderUI();
         }
 
         /* 渲染头像栏 */
         function _tbRenderAvatars(){
-            const bar = document.getElementById('tb-avatars');
-            bar.innerHTML = '';
-            TRIBUNAL_NPCS.forEach(name => {
-                const npcId = TRIBUNAL_NPC_IDS[name];
-                const svg = NPC_SVG[name] || '';
-                const wrap = document.createElement('div');
-                wrap.className = 'tb-npc';
-                wrap.id = `tb-npc-${npcId}`;
-                wrap.innerHTML = `
+            const bar=document.getElementById('tb-avatars');
+            bar.innerHTML='';
+            TRIBUNAL_NPCS.forEach(name=>{
+                const npcId=TRIBUNAL_NPC_IDS[name];
+                const svg=NPC_SVG[name]||'';
+                const wrap=document.createElement('div');
+                wrap.className='tb-npc';
+                wrap.id=`tb-npc-${npcId}`;
+                wrap.innerHTML=`
                     <div class="tb-avatar-wrap" id="tb-av-${npcId}" onclick="_tbClickAvatar('${npcId}','${name}')">
                         ${svg}
                     </div>
@@ -1541,71 +1603,34 @@
 
         /* 渲染底部证物按钮 */
         function _tbRenderClues(clueOptions){
-            const grid = document.getElementById('tb-clue-grid');
-            grid.innerHTML = '';
-            clueOptions.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = 'tb-clue-btn';
-                btn.textContent = opt.label.replace(/^[▪\s]+/,'');
-                btn.dataset.payload = opt.payload;
-                btn.onclick = () => _tbSelectClue(opt, btn);
+            const grid=document.getElementById('tb-clue-grid');
+            grid.innerHTML='';
+            clueOptions.forEach(opt=>{
+                const btn=document.createElement('button');
+                btn.className='tb-clue-btn';
+                btn.textContent=opt.label.replace(/^[▪\s]+/,'');
+                btn.dataset.payload=opt.payload;
+                btn.onclick=()=>_tbSelectClue(opt,btn);
                 grid.appendChild(btn);
             });
         }
 
-        /* 选择证物 → 询问首要质问对象（点头像） */
-        function _tbSelectClue(opt, btnEl){
-            // 高亮当前证物
+        /* 选择证物 */
+        async function _tbSelectClue(opt,btnEl){
             document.querySelectorAll('.tb-clue-btn').forEach(b=>b.classList.remove('active-clue'));
             btnEl.classList.add('active-clue');
-            tbState.activeClue = opt.payload;
-            // 发送 TRIBUNAL_TOPIC
-            send({user_input:`CMD_TRIBUNAL_TOPIC:${opt.payload}`});
+            tbState.activeClue=opt.payload;
+            const d=await tbSend(`CMD_TRIBUNAL_TOPIC:${opt.payload}`);
+            if(d&&d.reply_text) _tbHint(d.reply_text.replace(/\*\*/g,''));
         }
 
-        /* 后端返回 tribunal_mode 时调用此函数渲染 */
-        function tbHandleResponse(replyText, uiOptions){
-            if(!tbState.active) return;
-
-            const dialogue = document.getElementById('tb-dialogue');
-            const text = (replyText || '').trim();
-            if(!text) return;
-
-            // 解析 **Name：** 前缀提取说话者名字
-            const nameMatch = text.match(/^\*\*(.+?)：\*\*\s*/);
-            const speakerName = nameMatch ? nameMatch[1] : (tbState.focusNpc || '');
-            const speechText = nameMatch ? text.slice(nameMatch[0].length) : text;
-
-            if(speakerName){
-                // NPC 发言：渲染为对话气泡
-                const speech = document.createElement('div');
-                speech.className = 'tb-speech';
-                speech.innerHTML = `<div class="tb-speech-who">${escapeHtml(speakerName)}</div>
-                    <div class="tb-speech-text">${escapeHtml(speechText).replace(/\n/g,'<br>')}</div>`;
-                dialogue.appendChild(speech);
-            } else {
-                // 系统提示（如选证物后的提示文本）
-                const hint = document.createElement('div');
-                hint.style.cssText = 'text-align:center;color:var(--ink-light);font-size:12px;letter-spacing:2px;padding:8px 0;';
-                hint.textContent = speechText;
-                dialogue.appendChild(hint);
-            }
-            dialogue.scrollTop = dialogue.scrollHeight;
-        }
-
-        /* 点击头像（已选证物时发起质问） */
-        function _tbClickAvatar(npcId, npcName){
+        /* 点击头像 */
+        async function _tbClickAvatar(npcId,npcName){
             if(!tbState.activeClue){
-                // 未选证物：在对话区显示提示
-                const dialogue = document.getElementById('tb-dialogue');
-                const hint = document.createElement('div');
-                hint.style.cssText = 'text-align:center;color:var(--ink-light);font-size:12px;padding:6px 0;';
-                hint.textContent = '请先在下方选择呈堂证物';
-                dialogue.appendChild(hint);
-                dialogue.scrollTop = dialogue.scrollHeight;
+                _tbHint('请先在下方选择呈堂证物');
                 return;
             }
-            tbState.focusNpc = npcName;
+            tbState.focusNpc=npcName;
             // 头像高亮
             TRIBUNAL_NPCS.forEach(n=>{
                 const id=TRIBUNAL_NPC_IDS[n];
@@ -1616,14 +1641,11 @@
             document.getElementById(`tb-av-${npcId}`)?.classList.add('focused');
             const nameEl=document.getElementById(`tb-npc-${npcId}`)?.querySelector('.tb-name');
             if(nameEl) nameEl.style.color='var(--gold)';
-            // 对话区添加行动提示
-            const dialogue = document.getElementById('tb-dialogue');
-            const action = document.createElement('div');
-            action.style.cssText = 'text-align:center;color:var(--ink-light);font-size:12px;padding:8px 0;border-bottom:0.5px solid var(--paper-dark);';
-            action.textContent = `— 你向${npcName}出示了证物 —`;
-            dialogue.appendChild(action);
-            dialogue.scrollTop = dialogue.scrollHeight;
-            send({user_input:`CMD_TRIBUNAL_EXECUTE:${npcId}`});
+            // 行动提示
+            _tbHint(`— 你向${npcName}出示了证物 —`);
+            // 请求后端
+            const d=await tbSend(`CMD_TRIBUNAL_EXECUTE:${npcId}`);
+            if(d&&d.reply_text) _tbAddSpeech(d.reply_text);
         }
         // ===== 状态栏更新 =====
         function updateStatusBar(info){

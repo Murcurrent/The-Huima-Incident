@@ -5,7 +5,8 @@
       "Bash(for file:*)",
       "Bash(grep:*)",
       "Bash(git:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(cd:*)"
     ]
   }
 }
